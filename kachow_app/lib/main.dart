@@ -27,8 +27,46 @@ class MyApp extends StatelessWidget {
 
 class _BluetoothScreenState extends StatelessWidget {
   final _device = BluetoothClassic();
+  final String topic = 'TEF/carroMqtt01/attrs/v';
+  final int portaMQTT = 1883;
+  final String urlMQTT = '46.17.108.131';
+
   BluetoothConnection? connection;
   final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
+
+  Future<MqttServerClient> setupMqtt() async {
+    final client = MqttServerClient.withPort(urlMQTT, "vascodagama", portaMQTT);
+    client.logging(on: true);
+    client.keepAlivePeriod = 20;
+    final connMessage = MqttConnectMessage()
+        .withClientIdentifier("vascodagama")
+        .startClean()
+        .withWillQos(MqttQos.atMostOnce);
+    client.connectionMessage = connMessage;
+
+    try {
+      await client.connect();
+      if (client.connectionStatus!.state == MqttConnectionState.connected) {
+        print('Conectado ao broker MQTT');
+      } else {
+        print('Falha na conexão');
+        client.disconnect();
+      }
+    } catch (e) {
+      print('Erro de conexão: $e');
+      client.disconnect();
+    }
+
+    return client;
+  }
+
+  void publishMqttMessage(MqttServerClient client, String message) {
+    String topic = 'TEF/carroMqtt01/attrs/v';
+    final builder = MqttClientPayloadBuilder();
+    builder.addUTF8String(message);
+    client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
+    print('Mensagem publicada: $message');
+  }
 
   void iniciarEscuta() {
     connection!.input!.listen((data) {
