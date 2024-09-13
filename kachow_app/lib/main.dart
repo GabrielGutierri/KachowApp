@@ -7,7 +7,10 @@ import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
 
 void main() => runApp(MyApp());
 
@@ -97,6 +100,74 @@ class _BluetoothScreenState extends StatelessWidget {
     }
   }
 
+  Future<void> _testarHTTP() async {
+    final url =
+        'http://46.17.108.131:1026/v2/entities/urn:ngsi-ld:carroHttp:01/attrs/velocidade/value';
+
+    try {
+      final velocidades = ["1", "2", "3", "4", "5"];
+
+      for (var velocidade in velocidades) {
+        final response = await http.put(
+          Uri.parse(url),
+          headers: {'fiware-service': 'smart', 'fiware-servicepath': '/'},
+          body: velocidade,
+        );
+        print(response);
+      }
+    } catch (error) {
+      print('Error sending command: $error');
+    }
+  }
+
+  Future<void> _testarMQTT() async {
+    final client =
+        MqttServerClient.withPort("46.17.108.131", "vascodagama", 1883);
+    client.logging(on: true); // Para ajudar na depuração
+    client.keepAlivePeriod = 20; // Período de keep alive em segundos
+
+    // Configuração da mensagem de conexão
+    final connMessage = MqttConnectMessage()
+        .withClientIdentifier("vascodagama")
+        .startClean() // Inicia uma sessão limpa
+        .withWillQos(MqttQos.atMostOnce);
+    client.connectionMessage = connMessage;
+
+    // Tente conectar ao broker
+    try {
+      print('Conectando ao broker...');
+      await client.connect();
+    } catch (e) {
+      print('Erro de conexão: $e');
+      client.disconnect();
+      return; // Saia se não conseguir conectar
+    }
+
+    // Verifique se a conexão foi estabelecida
+    if (client.connectionStatus!.state == MqttConnectionState.connected) {
+      print('Conectado ao broker MQTT');
+
+      // Defina o tópico e a mensagem que você quer enviar
+      String topic = 'TEF/carroMqtt01/attrs/v';
+
+      // Criação da mensagem a ser publicada
+      final velocidades = ['1', '2', '3', '4', '5'];
+      for (var velocidade in velocidades) {
+        final builder = MqttClientPayloadBuilder();
+        builder.addUTF8String(velocidade);
+
+        // Publica a mensagem no tópico
+        client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
+      }
+    } else {
+      print('Falha na conexão, status: ${client.connectionStatus}');
+      client.disconnect();
+    }
+
+    // Desconecte após a publicação
+    client.disconnect();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,7 +184,11 @@ class _BluetoothScreenState extends StatelessWidget {
             ),
             ElevatedButton(
                 onPressed: _rotinaComandos,
-                child: const Text('Enviar comandos'))
+                child: const Text('Enviar comandos')),
+            ElevatedButton(
+                onPressed: _testarHTTP, child: const Text('Testar HTTP')),
+            ElevatedButton(
+                onPressed: _testarMQTT, child: const Text('Testar MQTT'))
           ],
         ),
       ),
