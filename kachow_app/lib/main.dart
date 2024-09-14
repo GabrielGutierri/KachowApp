@@ -7,10 +7,13 @@ import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:kachow_app/mqttservice.dart';
+import 'package:kachow_app/obdservice.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:workmanager/workmanager.dart';
 
 void main() => runApp(MyApp());
 
@@ -27,67 +30,6 @@ class MyApp extends StatelessWidget {
 
 class _BluetoothScreenState extends StatelessWidget {
   final _device = BluetoothClassic();
-  final String topic = 'TEF/carroMqtt01/attrs/v';
-  final int portaMQTT = 1883;
-  final String urlMQTT = '46.17.108.131';
-
-  BluetoothConnection? connection;
-  final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
-
-  Future<MqttServerClient> setupMqtt() async {
-    final client = MqttServerClient.withPort(urlMQTT, "vascodagama", portaMQTT);
-    client.logging(on: true);
-    client.keepAlivePeriod = 20;
-    final connMessage = MqttConnectMessage()
-        .withClientIdentifier("vascodagama")
-        .startClean()
-        .withWillQos(MqttQos.atMostOnce);
-    client.connectionMessage = connMessage;
-
-    try {
-      await client.connect();
-      if (client.connectionStatus!.state == MqttConnectionState.connected) {
-        print('Conectado ao broker MQTT');
-      } else {
-        print('Falha na conexão');
-        client.disconnect();
-      }
-    } catch (e) {
-      print('Erro de conexão: $e');
-      client.disconnect();
-    }
-
-    return client;
-  }
-
-  void publishMqttMessage(MqttServerClient client, String message) {
-    String topic = 'TEF/carroMqtt01/attrs/v';
-    final builder = MqttClientPayloadBuilder();
-    builder.addUTF8String(message);
-    client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
-    print('Mensagem publicada: $message');
-  }
-
-  void iniciarEscuta() {
-    connection!.input!.listen((data) {
-      Completer<String> completer = respostaQueue.removeFirst();
-      String resposta = String.fromCharCodes(data);
-      completer.complete(resposta);
-    });
-  }
-
-  Future<String> enviarComando(String comando) async {
-    List<int> list = comando.codeUnits;
-    Uint8List bytes = Uint8List.fromList(list);
-
-    Completer<String> completer = Completer<String>();
-    respostaQueue.add(completer);
-    connection!.output.add(bytes);
-    await connection!.output.allSent;
-
-    return completer.future;
-  }
-
   Future<void> _getPairedDevices() async {
     PermissionStatus bluetoothStatus = await Permission.bluetoothScan.request();
     PermissionStatus bluetoothConnect =
@@ -106,104 +48,10 @@ class _BluetoothScreenState extends StatelessWidget {
         BluetoothConnection connectionB =
             await BluetoothConnection.toAddress(obdDevice.address);
         if (connectionB.isConnected) {
-          connection = connectionB;
+          await Obdservice.rotinaComandos(connectionB);
         }
       }
     }
-  }
-
-  Future<void> _rotinaComandos() async {
-    String comandoVelocidade = "01 0D\r";
-    List<String> listaComandos = [
-      "01 0A\r",
-      "01 0B\r",
-      "01 0C\r",
-      "01 0D\r",
-      "01 0E\r"
-    ];
-    try {
-      if (connection != null) {
-        iniciarEscuta();
-        List<String> respostas = [];
-        for (int i = 0; i < 100; i++) {
-          for (String comando in listaComandos) {
-            String resposta = await enviarComando(comando);
-            respostas.add(resposta);
-          }
-        }
-        print(respostas);
-      }
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  Future<void> _testarHTTP() async {
-    final url =
-        'http://46.17.108.131:1026/v2/entities/urn:ngsi-ld:carroHttp:01/attrs/velocidade/value';
-
-    try {
-      final velocidades = ["1", "2", "3", "4", "5"];
-
-      for (var velocidade in velocidades) {
-        final response = await http.put(
-          Uri.parse(url),
-          headers: {'fiware-service': 'smart', 'fiware-servicepath': '/'},
-          body: velocidade,
-        );
-        print(response);
-      }
-    } catch (error) {
-      print('Error sending command: $error');
-    }
-  }
-
-  Future<void> _testarMQTT() async {
-    final client =
-        MqttServerClient.withPort("46.17.108.131", "vascodagama", 1883);
-    client.logging(on: true); // Para ajudar na depuração
-    client.keepAlivePeriod = 20; // Período de keep alive em segundos
-
-    // Configuração da mensagem de conexão
-    final connMessage = MqttConnectMessage()
-        .withClientIdentifier("vascodagama")
-        .startClean() // Inicia uma sessão limpa
-        .withWillQos(MqttQos.atMostOnce);
-    client.connectionMessage = connMessage;
-
-    // Tente conectar ao broker
-    try {
-      print('Conectando ao broker...');
-      await client.connect();
-    } catch (e) {
-      print('Erro de conexão: $e');
-      client.disconnect();
-      return; // Saia se não conseguir conectar
-    }
-
-    // Verifique se a conexão foi estabelecida
-    if (client.connectionStatus!.state == MqttConnectionState.connected) {
-      print('Conectado ao broker MQTT');
-
-      // Defina o tópico e a mensagem que você quer enviar
-      String topic = 'TEF/carroMqtt01/attrs/v';
-
-      // Criação da mensagem a ser publicada
-      final velocidades = ['1', '2', '3', '4', '5'];
-      for (var velocidade in velocidades) {
-        final builder = MqttClientPayloadBuilder();
-        builder.addUTF8String(velocidade);
-
-        // Publica a mensagem no tópico
-        client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
-      }
-    } else {
-      print('Falha na conexão, status: ${client.connectionStatus}');
-      client.disconnect();
-    }
-
-    // Desconecte após a publicação
-    client.disconnect();
   }
 
   @override
@@ -221,12 +69,17 @@ class _BluetoothScreenState extends StatelessWidget {
               child: const Text('Conectar'),
             ),
             ElevatedButton(
-                onPressed: _rotinaComandos,
-                child: const Text('Enviar comandos')),
+              onPressed: Mqttservice.TrataMensagemVelocidadeTeste,
+              child: const Text('Velocidade'),
+            ),
             ElevatedButton(
-                onPressed: _testarHTTP, child: const Text('Testar HTTP')),
+              onPressed: Mqttservice.TrataMensagemRPMTeste,
+              child: const Text('RPM'),
+            ),
             ElevatedButton(
-                onPressed: _testarMQTT, child: const Text('Testar MQTT'))
+              onPressed: Mqttservice.TrataMensagemIntakeTeste,
+              child: const Text('Intake'),
+            )
           ],
         ),
       ),

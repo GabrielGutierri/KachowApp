@@ -1,99 +1,146 @@
 // Background task identifier
 import 'package:flutter/material.dart';
+import 'package:kachow_app/obdservice.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:workmanager/workmanager.dart';
 
-const String mqttTask = "mqttTask";
+class Mqttservice {
+  static List<String> respostas = [];
+  static String mqttURL = "46.17.108.131";
+  static int mqttPort = 1883;
+  static String identifier = "carroGuti";
+  static String topicVelocidade = 'TEF/carroGuti/attrs/v';
+  static String topicRPM = 'TEF/carroGuti/attrs/r';
+  static String topicIntake = 'TEF/carroGuti/attrs/i';
+  static String topicDataColeta = 'TEF/carroGuti/attrs/d';
 
-// Simulated list of data
-List<String> dataList = ["Message 1"];
+  static Future<MqttServerClient> setupMqtt() async {
+    final client = MqttServerClient.withPort(mqttURL, identifier, mqttPort);
+    client.logging(on: true);
+    client.keepAlivePeriod = 20;
+    final connMessage = MqttConnectMessage()
+        .withClientIdentifier(identifier)
+        .startClean()
+        .withWillQos(MqttQos.atMostOnce);
+    client.connectionMessage = connMessage;
 
-// Setup MQTT Client
-Future<MqttServerClient> setupMqtt() async {
-  final client =
-      MqttServerClient.withPort("46.17.108.131", "vascodagama", 1883);
-  client.logging(on: true);
-  client.keepAlivePeriod = 20;
-  final connMessage = MqttConnectMessage()
-      .withClientIdentifier("vascodagama")
-      .startClean()
-      .withWillQos(MqttQos.atMostOnce);
-  client.connectionMessage = connMessage;
-
-  try {
-    await client.connect();
-    if (client.connectionStatus!.state == MqttConnectionState.connected) {
-      print('Conectado ao broker MQTT');
-    } else {
-      print('Falha na conexão');
+    try {
+      await client.connect();
+      if (client.connectionStatus!.state == MqttConnectionState.connected) {
+        print('Conectado ao broker MQTT');
+      } else {
+        print('Falha na conexão');
+        client.disconnect();
+      }
+    } catch (e) {
+      print('Erro de conexão: $e');
       client.disconnect();
     }
-  } catch (e) {
-    print('Erro de conexão: $e');
-    client.disconnect();
+
+    return client;
   }
 
-  return client;
-}
-
-// Publish MQTT message
-void publishMqttMessage(MqttServerClient client, String message) {
-  String topic = 'TEF/carroMqtt01/attrs/v';
-  final builder = MqttClientPayloadBuilder();
-  builder.addUTF8String(message);
-  client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
-  print('Mensagem publicada: $message');
-}
-
-// Function to check list and publish if necessary
-Future<void> checkListAndPublish() async {
-  // Setup MQTT
-  final client = await setupMqtt();
-
-  // Publish each message in the list
-  for (var message in dataList) {
-    publishMqttMessage(client, message);
-  }
-
-  // Disconnect the MQTT client
-  client.disconnect();
-}
-
-// WorkManager callback to execute periodically in the background
-void mqttTaskCallback() {
-  Workmanager().executeTask((task, inputData) async {
-    // int i = 0;
-    while (true) {
-      await checkListAndPublish();
+  static void publishMqttMessage(MqttServerClient client, String message) {
+    final builder = MqttClientPayloadBuilder();
+    String mensagem = "";
+    String topic = "";
+    if (message.contains("01 0D")) {
+      mensagem = TrataMensagemVelocidade(message.trim());
+      topic = topicVelocidade;
     }
-  });
-}
+    if (message.contains("01 0C")) {
+      mensagem = TrataMensagemRPM(message.trim());
+      topic = topicRPM;
+    }
+    if (message.contains("01 0B")) {
+      mensagem = TrataMensagemIntake(message.trim());
+      topic = topicIntake;
+    }
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+    if (isValidDateTimeFormat(message)) {
+      mensagem = message;
+      topic = topicDataColeta;
+    }
+    builder.addUTF8String(mensagem);
+    client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
+  }
 
-  // Initialize WorkManager
-  Workmanager().initialize(mqttTaskCallback, isInDebugMode: true);
+  static Future<void> checkListAndPublish() async {
+    // Setup MQTT
+    final client = await setupMqtt();
+    //publishMqttMessage(client, DateTime.now().toString());
+    // Publish each message in the list
+    try {
+      for (var message in respostas) {
+        publishMqttMessage(client, message);
+      }
+      // Disconnect the MQTT client
+      client.disconnect();
+    } catch (e) {
+      client.disconnect();
+    }
+  }
 
-  // Register the periodic task (every 15 minutes in this case)
-  Workmanager().registerPeriodicTask(
-    "1",
-    mqttTask,
-    frequency: Duration(minutes: 15),
-  );
+  static String TrataMensagemVelocidade(String mensagem) {
+    mensagem = mensagem.trim().replaceAll(RegExp(r'41 0D'), '');
+    mensagem = mensagem.trim().replaceAll(RegExp(r'01 0D'), '');
 
-  runApp(MyApp());
-}
+    RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
+    Iterable<Match> matches = regExp.allMatches(mensagem.trim());
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: Text('MQTT Background Service')),
-        body: Center(child: Text('Running background task...')),
-      ),
-    );
+    // Mapeia os resultados e retorna uma lista de strings
+    List<String> velocidades = matches.map((match) => match.group(0)!).toList();
+    int speedInKmh = int.parse(velocidades[0].trim(), radix: 16);
+    return speedInKmh.toString();
+  }
+
+  static String TrataMensagemRPM(String mensagem) {
+    mensagem = mensagem.trim().replaceAll(RegExp(r'01 0C'), '');
+    mensagem = mensagem.trim().replaceAll(RegExp(r'41 0C'), '');
+
+    RegExp regExp = RegExp(r'\b[0-9A-F]{2} [0-9A-F]{2}\b');
+    Iterable<Match> matches = regExp.allMatches(mensagem.trim());
+
+    List<String> rpms = matches.map((match) => match.group(0)!).toList();
+
+    List<String> bytes = rpms[0].trim().split(' ');
+    int primeiroByte = int.parse(bytes[0], radix: 16);
+    int segundoByte = int.parse(bytes[1], radix: 16);
+
+    double rpm = ((primeiroByte * 256) + segundoByte) / 4;
+    return rpm.toString();
+  }
+
+  static String TrataMensagemIntake(String mensagem) {
+    mensagem = mensagem.trim().replaceAll(RegExp(r'01 0B'), '');
+    mensagem = mensagem.trim().replaceAll(RegExp(r'41 0B'), '');
+    RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
+    Iterable<Match> matches = regExp.allMatches(mensagem.trim());
+    List<String> intakes = matches.map((match) => match.group(0)!).toList();
+
+    int kpa = int.parse(intakes[0].trim(), radix: 16);
+    return kpa.toString();
+  }
+
+  static bool isValidDateTimeFormat(String input) {
+    try {
+      DateTime.parse(input); // Tenta fazer o parse da string para DateTime
+      return true; // Se bem-sucedido, retorna true
+    } catch (e) {
+      return false; // Se falhar, não é um formato de DateTime válido
+    }
+  }
+
+  static void TrataMensagemVelocidadeTeste() {
+    String teste = TrataMensagemVelocidade('01 0D41 0D 00');
+  }
+
+  static void TrataMensagemRPMTeste() {
+    String teste = TrataMensagemRPM('01 0C41 0C 0B DA 41 0C 0B DA');
+  }
+
+  static void TrataMensagemIntakeTeste() {
+    String teste = TrataMensagemIntake('01 0B41 0B 1F');
   }
 }
