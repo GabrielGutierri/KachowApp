@@ -39,9 +39,10 @@ dependencies:
   permission_handler: ^11.3.1
   bluetooth_classic: ^0.0.1
   flutter_bluetooth_serial: ^0.4.0
-  http: ^1.1.0
+  http: ^1.2.2
   mqtt_client: ^10.5.1
   workmanager: ^0.5.2
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:

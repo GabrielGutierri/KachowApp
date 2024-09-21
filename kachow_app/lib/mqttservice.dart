@@ -3,17 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:kachow_app/obdservice.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 class Mqttservice {
   static List<String> respostas = [];
   static String mqttURL = "46.17.108.131";
   static int mqttPort = 1883;
-  static String identifier = "carroGuti";
-  static String topicVelocidade = 'TEF/carroGuti/attrs/v';
-  static String topicRPM = 'TEF/carroGuti/attrs/r';
-  static String topicIntake = 'TEF/carroGuti/attrs/i';
-  static String topicDataColeta = 'TEF/carroGuti/attrs/d';
+  static String identifier = "carro";
+  static String topicVelocidade = 'TEF/carro/attrs/v';
+  static String topicRPM = 'TEF/carro/attrs/r';
+  // static String topicIntake = 'TEF/carro/attrs/i';
+  static String topicDataColeta = 'TEF/carro/attrs/d';
 
   static Future<MqttServerClient> setupMqtt() async {
     final client = MqttServerClient.withPort(mqttURL, identifier, mqttPort);
@@ -28,6 +29,13 @@ class Mqttservice {
     try {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        String deviceID = prefs.getString('deviceID') ?? "carro";
+        identifier.replaceFirst('carro', deviceID);
+        topicVelocidade.replaceFirst('carro', deviceID);
+        // topicIntake.replaceAll('carro', deviceID);
+        topicRPM.replaceFirst('carro', deviceID);
+        topicDataColeta.replaceFirst('carro', deviceID);
         print('Conectado ao broker MQTT');
       } else {
         print('Falha na conexão');
@@ -53,15 +61,15 @@ class Mqttservice {
       mensagem = TrataMensagemRPM(message.trim());
       topic = topicRPM;
     }
-    if (message.contains("01 0B")) {
-      mensagem = TrataMensagemIntake(message.trim());
-      topic = topicIntake;
-    }
-
+    // if (message.contains("01 0B")) {
+    //   mensagem = TrataMensagemIntake(message.trim());
+    //   topic = topicIntake;
+    // }
     if (isValidDateTimeFormat(message)) {
       mensagem = message;
       topic = topicDataColeta;
     }
+
     builder.addUTF8String(mensagem);
     client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
   }
@@ -69,7 +77,8 @@ class Mqttservice {
   static Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
-    //publishMqttMessage(client, DateTime.now().toString());
+    publishMqttMessage(client, DateTime.now().toString());
+
     // Publish each message in the list
     try {
       for (var message in respostas) {
@@ -130,17 +139,5 @@ class Mqttservice {
     } catch (e) {
       return false; // Se falhar, não é um formato de DateTime válido
     }
-  }
-
-  static void TrataMensagemVelocidadeTeste() {
-    String teste = TrataMensagemVelocidade('01 0D41 0D 00');
-  }
-
-  static void TrataMensagemRPMTeste() {
-    String teste = TrataMensagemRPM('01 0C41 0C 0B DA 41 0C 0B DA');
-  }
-
-  static void TrataMensagemIntakeTeste() {
-    String teste = TrataMensagemIntake('01 0B41 0B 1F');
   }
 }

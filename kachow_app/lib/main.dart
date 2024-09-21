@@ -1,56 +1,71 @@
-import 'dart:collection';
-import 'dart:convert';
-
-import 'package:bluetooth_classic/models/device.dart';
 import 'package:flutter/material.dart';
-import 'package:bluetooth_classic/bluetooth_classic.dart';
-import 'dart:async';
-import 'package:flutter/services.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-import 'package:kachow_app/mqttservice.dart';
-import 'package:kachow_app/obdservice.dart';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:http/http.dart' as http;
-import 'package:workmanager/workmanager.dart';
+import 'package:kachow_app/fiwareservice.dart';
+import 'package:kachow_app/BluetoothScreenState.dart';
+import 'package:kachow_app/models/IdentificacaoVeiculo.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: _BluetoothScreenState(),
+      title: 'Identificação de veículo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: IdentificacaoCarroScreen(),
     );
   }
 }
 
-class _BluetoothScreenState extends StatelessWidget {
-  final _device = BluetoothClassic();
-  Future<void> _getPairedDevices() async {
-    PermissionStatus bluetoothStatus = await Permission.bluetoothScan.request();
-    PermissionStatus bluetoothConnect =
-        await Permission.bluetoothConnect.request();
-    if (bluetoothStatus.isGranted && bluetoothConnect.isGranted) {
-      List<Device> devices = await _device.getPairedDevices();
-      Device? obdDevice;
-      for (var d in devices) {
-        if (d.name.toString() == "OBDII") {
-          obdDevice = d;
-          break;
-        }
-      }
+class IdentificacaoCarroScreen extends StatefulWidget {
+  @override
+  _IdentificacaoCarroScreenState createState() =>
+      _IdentificacaoCarroScreenState();
+}
 
-      if (obdDevice != null) {
-        BluetoothConnection connectionB =
-            await BluetoothConnection.toAddress(obdDevice.address);
-        if (connectionB.isConnected) {
-          await Obdservice.rotinaComandos(connectionB);
-        }
-      }
+class _IdentificacaoCarroScreenState extends State<IdentificacaoCarroScreen> {
+  final TextEditingController _nomeController = TextEditingController();
+  final TextEditingController _placaController = TextEditingController();
+  String? _mensagemErro;
+
+  Future<void> _salvarCarro(String nome, String placa) async {
+    await Fiwareservice.SalvarEntidadeVeiculo(
+        new IdentificacaoVeiculo(nome: nome, placa: placa));
+  }
+
+  Future<bool> _validarCarro(String nome, String placa) async {
+    String deviceName = "urn:ngsi-ld:${nome}:${placa}";
+    return await Fiwareservice.VerificaDispositivoExistente(placa, deviceName);
+  }
+
+  void _loginOuCadastrar() async {
+    String nome = _nomeController.text;
+    String placa = _placaController.text;
+
+    if (nome.isEmpty || placa.isEmpty) {
+      setState(() {
+        _mensagemErro = 'Por favor, insira o nome e a placa do carro.';
+      });
+      return;
+    }
+
+    bool existe = await _validarCarro(nome, placa);
+    if (existe) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => BluetoothScreenState()),
+      );
+    } else {
+      _salvarCarro(nome, placa);
+      setState(() {});
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => BluetoothScreenState()),
+      );
     }
   }
 
@@ -58,29 +73,39 @@ class _BluetoothScreenState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TesteBluetooth'),
+        title: Text('Cadastro de Carro'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ElevatedButton(
-              onPressed: _getPairedDevices,
-              child: const Text('Conectar'),
-            ),
-            ElevatedButton(
-              onPressed: Mqttservice.TrataMensagemVelocidadeTeste,
-              child: const Text('Velocidade'),
-            ),
-            ElevatedButton(
-              onPressed: Mqttservice.TrataMensagemRPMTeste,
-              child: const Text('RPM'),
-            ),
-            ElevatedButton(
-              onPressed: Mqttservice.TrataMensagemIntakeTeste,
-              child: const Text('Intake'),
-            )
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              TextField(
+                controller: _nomeController,
+                decoration: InputDecoration(labelText: 'Nome do carro'),
+              ),
+              SizedBox(height: 20),
+              TextField(
+                controller: _placaController,
+                decoration: InputDecoration(labelText: 'Placa do carro'),
+              ),
+              SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: _loginOuCadastrar,
+                child: Text('Entrar'),
+              ),
+              if (_mensagemErro != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Text(
+                    _mensagemErro!,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -7,18 +7,6 @@ import 'package:kachow_app/mqttservice.dart';
 import 'package:workmanager/workmanager.dart';
 
 class Obdservice {
-  // static const String obdTask = "obdTask";
-  // static void obdTaskCallback() {
-  //   Workmanager().executeTask((task, inputData) async {
-  //     await Future.delayed(Duration(seconds: 10), () {
-  //       _rotinaComandos(null);
-  //     });
-
-  //     // Indica que a tarefa foi concluída após 10 segundos
-  //     return Future.value(true);
-  //   });
-  // }
-
   static final Queue<Completer<String>> respostaQueue =
       Queue<Completer<String>>();
 
@@ -48,15 +36,16 @@ class Obdservice {
     List<String> listaComandos = [
       "01 0D\r",
       "01 0C\r",
-      "01 0B\r",
+      // "01 0B\r",
     ];
+
     try {
-      if (connection != null) {
-        iniciarEscuta(connection);
-        while (true) {
-          await EnviaComandos(listaComandos, connection);
-        }
+      //if (connection != null) {
+      //iniciarEscuta(connection);
+      while (true) {
+        await EnviaComandos(listaComandos, connection);
       }
+      //}
     } catch (e) {
       print(e);
     }
@@ -64,10 +53,11 @@ class Obdservice {
 
   static Future<void> EnviaComandos(listaComandos, connection) async {
     await Future.delayed(Duration(seconds: 1));
-    for (var comando in listaComandos) {
-      String resposta = await enviarComando(comando, connection);
-      Mqttservice.respostas.add(resposta);
-    }
+    // for (var comando in listaComandos) {
+    //   String resposta = await enviarComando(comando, connection);
+    //   Mqttservice.respostas.add(resposta);
+    // }
+
     await Future.delayed(Duration(seconds: 1));
     await Mqttservice.checkListAndPublish();
     Mqttservice.respostas.clear();
