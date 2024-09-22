@@ -1,18 +1,24 @@
 import 'package:geolocator/geolocator.dart';
 
 class Geolocation {
-  // Método síncrono que retorna uma string com latitude e longitude concatenadas
-  static String TrataMensagemGeolocalizacao() {
+  // Método assíncrono que retorna uma string com latitude e longitude concatenadas
+  static Future<String> TrataMensagemGeolocalizacao() async {
+    print('TrataMensagemGeolocalizacao');
     String latitudeLongitude = 'Localização não disponível';
 
-    // Lógica assíncrona para obter a geolocalização
-    _getGeoLocation().then((position) {
+    try {
+      // Aguardando a obtenção da geolocalização
+      Position position = await _getGeoLocation();
+      print('position - > ' + latitudeLongitude);
+      // Concatenando latitude e longitude separadas por ;
       latitudeLongitude = "${position.latitude};${position.longitude}";
-    });
+    } catch (e) {
+      // Tratamento de erros (ex: falha ao obter localização)
+      print('Erro ao obter a localização: $e');
+    }
 
-    print("Latitude e Longitude: $latitudeLongitude");
-
-    // Retorna a string inicialmente com "Localização não disponível" até o Future ser resolvido
+    print('latitudeLongitude - > ' + latitudeLongitude);
+    // Retornando a string com latitude e longitude
     return latitudeLongitude;
   }
 

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:kachow_app/geolocation.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:kachow_app/mqttservice.dart';
 import 'package:kachow_app/obdservice.dart';

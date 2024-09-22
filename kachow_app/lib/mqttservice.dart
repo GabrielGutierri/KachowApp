@@ -1,4 +1,3 @@
-// Background task identifier
 import 'package:flutter/material.dart';
 import 'package:kachow_app/obdservice.dart';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -15,7 +14,6 @@ class Mqttservice {
   static String topicVelocidade = 'TEF/carro/attrs/v';
   static String topicRPM = 'TEF/carro/attrs/r';
   static String topicGeolocalizacao = 'TEF/carro/attrs/g';
-  // static String topicIntake = 'TEF/carro/attrs/i';
   static String topicDataColeta = 'TEF/carro/attrs/d';
 
   static Future<MqttServerClient> setupMqtt() async {
@@ -33,11 +31,10 @@ class Mqttservice {
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         String deviceID = prefs.getString('deviceID') ?? "carro";
-        identifier.replaceFirst('carro', deviceID);
-        topicVelocidade.replaceFirst('carro', deviceID);
-        // topicIntake.replaceAll('carro', deviceID);
-        topicRPM.replaceFirst('carro', deviceID);
-        topicDataColeta.replaceFirst('carro', deviceID);
+        identifier = identifier.replaceFirst('carro', deviceID);
+        topicVelocidade = topicVelocidade.replaceFirst('carro', deviceID);
+        topicRPM = topicRPM.replaceFirst('carro', deviceID);
+        topicDataColeta = topicDataColeta.replaceFirst('carro', deviceID);
         print('Conectado ao broker MQTT');
       } else {
         print('Falha na conexão');
@@ -51,26 +48,26 @@ class Mqttservice {
     return client;
   }
 
-  static void publishMqttMessage(MqttServerClient client, String message) {
+  static void publishMqttMessage(MqttServerClient client, String message) async {
     final builder = MqttClientPayloadBuilder();
     String mensagem = "";
     String topic = "";
+    
     if (message.contains("01 0D")) {
       mensagem = TrataMensagemVelocidade(message.trim());
       topic = topicVelocidade;
     }
+    
     if (message.contains("01 0C")) {
       mensagem = TrataMensagemRPM(message.trim());
       topic = topicRPM;
     }
-    // if (message.contains("01 0B")) {
-    //   mensagem = TrataMensagemIntake(message.trim());
-    //   topic = topicIntake;
-    // }
+    
     if (message.contains("G")) {
-      mensagem = TrazGeolocalizacao();
+      mensagem = await TrazGeolocalizacao();
       topic = topicGeolocalizacao;
     }
+    
     if (isValidDateTimeFormat(message)) {
       mensagem = message;
       topic = topicDataColeta;
@@ -83,9 +80,9 @@ class Mqttservice {
   static Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
-    //publishMqttMessage(client, DateTime.now().toString());
-    //mande um g para sinalizar que é sobre geolocalização 
-    //publishMqttMessage(client, 'G');
+    // Publica a geolocalização com a mensagem "G"
+    publishMqttMessage(client, 'G');
+
     // Publish each message in the list
     try {
       for (var message in respostas) {
@@ -98,10 +95,9 @@ class Mqttservice {
     }
   }
 
-
-  static String TrazGeolocalizacao() {
-    // fazer aqui a logica para retornar a latitude e longitude (concatenadas e separadas por ;)usando a biblioteca geolocator
-    String latitudeELongitude = Geolocation.TrataMensagemGeolocalizacao();
+  static Future<String> TrazGeolocalizacao() async {
+    // Agora este método retorna a string de geolocalização de forma assíncrona
+    String latitudeELongitude = await Geolocation.TrataMensagemGeolocalizacao();
     return latitudeELongitude;
   }
 
@@ -118,8 +114,6 @@ class Mqttservice {
     return speedInKmh.toString();
   }
 
-  
-
   static String TrataMensagemRPM(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0C'), '');
     mensagem = mensagem.trim().replaceAll(RegExp(r'41 0C'), '');
@@ -135,17 +129,6 @@ class Mqttservice {
 
     double rpm = ((primeiroByte * 256) + segundoByte) / 4;
     return rpm.toString();
-  }
-
-  static String TrataMensagemIntake(String mensagem) {
-    mensagem = mensagem.trim().replaceAll(RegExp(r'01 0B'), '');
-    mensagem = mensagem.trim().replaceAll(RegExp(r'41 0B'), '');
-    RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
-    Iterable<Match> matches = regExp.allMatches(mensagem.trim());
-    List<String> intakes = matches.map((match) => match.group(0)!).toList();
-
-    int kpa = int.parse(intakes[0].trim(), radix: 16);
-    return kpa.toString();
   }
 
   static bool isValidDateTimeFormat(String input) {
