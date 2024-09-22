@@ -13,7 +13,8 @@ class Mqttservice {
   static String identifier = "carro";
   static String topicVelocidade = 'TEF/carro/attrs/v';
   static String topicRPM = 'TEF/carro/attrs/r';
-  static String topicGeolocalizacao = 'TEF/carro/attrs/g';
+  static String topicLatitude = 'TEF/carro/attrs/la';
+  static String topicLongitude = 'TEF/carro/attrs/lo';
   static String topicDataColeta = 'TEF/carro/attrs/d';
 
   static Future<MqttServerClient> setupMqtt() async {
@@ -35,6 +36,8 @@ class Mqttservice {
         topicVelocidade = topicVelocidade.replaceFirst('carro', deviceID);
         topicRPM = topicRPM.replaceFirst('carro', deviceID);
         topicDataColeta = topicDataColeta.replaceFirst('carro', deviceID);
+        topicLongitude = topicLongitude.replaceFirst('carro', deviceID);
+        topicLatitude = topicLatitude.replaceFirst('carro', deviceID);
         print('Conectado ao broker MQTT');
       } else {
         print('Falha na conexão');
@@ -63,25 +66,30 @@ class Mqttservice {
       topic = topicRPM;
     }
     
-    if (message.contains("G")) {
-      mensagem = await TrazGeolocalizacao();
-      topic = topicGeolocalizacao;
+    if (message.contains("LAT")) {
+      mensagem = await TrazLatitude();
+      topic = topicLatitude;
+    }
+    if (message.contains("LON")) {
+      mensagem = await TrazLongitude();
+      topic = topicLongitude;
     }
     
     if (isValidDateTimeFormat(message)) {
       mensagem = message;
       topic = topicDataColeta;
     }
-
     builder.addUTF8String(mensagem);
+  
     client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
   }
 
   static Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
-    // Publica a geolocalização com a mensagem "G"
-    publishMqttMessage(client, 'G');
+    // Publica a geolocalização com a mensagem "L"
+    publishMqttMessage(client, 'LAT');
+    publishMqttMessage(client, 'LON');
 
     // Publish each message in the list
     try {
@@ -95,12 +103,18 @@ class Mqttservice {
     }
   }
 
-  static Future<String> TrazGeolocalizacao() async {
+  static Future<String> TrazLatitude() async {
     // Agora este método retorna a string de geolocalização de forma assíncrona
     String latitudeELongitude = await Geolocation.TrataMensagemGeolocalizacao();
-    return latitudeELongitude;
+  
+    return latitudeELongitude.split(";")[0];
   }
-
+  static Future<String> TrazLongitude() async {
+    // Agora este método retorna a string de geolocalização de forma assíncrona
+    String latitudeELongitude = await Geolocation.TrataMensagemGeolocalizacao();
+    
+    return latitudeELongitude.split(";")[1];
+  }
   static String TrataMensagemVelocidade(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'41 0D'), '');
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0D'), '');

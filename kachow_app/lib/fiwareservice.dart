@@ -24,11 +24,6 @@ class Fiwareservice {
       String deviceID, String deviceName) async {
     //enviar um post para a url http://{{url}}:4041/iot/devices
     var urlDevice = Uri.parse("http://${_ip}:4041/iot/devices");
-    Map<String, String> headers = {
-      "Content-Type": "application/json",
-      "fiware-service": "smart",
-      "fiware-servicepath": "/"
-    };
 
     var body = {
       "devices": [
@@ -41,12 +36,10 @@ class Fiwareservice {
           "attributes": [
             {"object_id": "v", "name": "velocidade", "type": "Text"},
             {"object_id": "r", "name": "rpm", "type": "Text"},
-            {
-              "object_id": "i",
-              "name": "intake manifold pressure",
-              "type": "Text"
-            },
-            {"object_id": "d", "name": "data coleta dados", "type": "Text"}
+            {"object_id": "la", "name": "latitude", "type": "Text"},
+            {"object_id": "lo", "name": "longitude", "type": "Text"},
+            {"object_id": "a", "name": "acelerometro", "type": "Text"},
+            {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
           ]
         }
       ]
@@ -59,9 +52,67 @@ class Fiwareservice {
     });
   }
 
-  static Future<void> AdicionarSubscription(String deviceName) async {}
+  static Future<void> AdicionarSubscription(String deviceName) async {
+    var urlSubscription = Uri.parse("http://${_ip}:1026/v2/subscriptions/");
+    var body = {
+      "description":
+          "Notificar STH Comet de mudanças em ${deviceName}", // Descrição da notificação
+      "subject": {
+        "entities": [
+          {"id": deviceName, "type": "Carro"}
+        ],
+        "conditions": {
+          "attrs": [
+            "velocidade",
+            "rpm",
+            "latitude",
+            "longitude",
+            "acelerometro",
+            "dataColetaDados"
+          ]
+        }
+      },
+      "notification": {
+        "http": {"url": "http://${_ip}:8666/notify"},
+        "attrs": [
+          "velocidade",
+          "rpm",
+          "latitude",
+          "longitude",
+          "acelerometro",
+          "dataColetaDados"
+        ],
+        "attrsFormat":
+            "legacy" // Formato dos atributos a ser notificado (legado)
+      }
+    };
 
-  static Future<void> CriarEntidadeOrion(String deviceName) async {}
+    var jsonComet = await http.post(urlSubscription, body: json.encode(body), headers: {
+      "Content-Type": "application/json",
+      "fiware-service": "smart",
+      "fiware-servicepath": "/"
+    });
+  }
+
+  static Future<void> CriarEntidadeOrion(String deviceName) async {
+    var urlOrion = Uri.parse("http://${_ip}:1026/v2/entities");
+    var body = {
+      "id": deviceName, //substituir carro pelo entity_name do passo anterior
+      "type": "Carro",
+      "velocidade": {"type": "Text", "value": "0"},
+      "rpm": {"type": "Text", "value": "0"},
+      "latitude": {"type": "Text", "value": "0"},
+      "longitude": {"type": "Text", "value": "0"},
+      "acelerometro": {"type": "Text", "value": "0"},
+      "dataColetaDados": {"type": "Text", "value": "0"}
+    };
+
+    await http.post(urlOrion, body: json.encode(body), headers: {
+      "Content-Type": "application/json",
+      "fiware-service": "smart",
+      "fiware-servicepath": "/"
+    });
+  }
 
   static Future<bool> VerificaDispositivoExistente(
       String deviceID, String deviceName) async {
@@ -71,7 +122,7 @@ class Fiwareservice {
       "fiware-service": "smart",
       "fiware-servicepath": "/"
     });
-    if (response.statusCode > 200 && response.statusCode <= 300) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       await ArmazenarValoresCarro(deviceID, deviceName);
       return true;
     }
