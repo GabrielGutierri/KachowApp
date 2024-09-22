@@ -83,7 +83,7 @@ class Mqttservice {
   static Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
-    publishMqttMessage(client, DateTime.now().toString());
+    //publishMqttMessage(client, DateTime.now().toString());
     //mande um g para sinalizar que é sobre geolocalização 
     //publishMqttMessage(client, 'G');
     // Publish each message in the list
