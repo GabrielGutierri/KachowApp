@@ -38,6 +38,7 @@ dependencies:
   flutter_libserialport: ^0.4.0
   permission_handler: ^11.3.1
   bluetooth_classic: ^0.0.1
+  geolocator: ^9.0.2
   flutter_bluetooth_serial: ^0.4.0
   http: ^1.2.2
   mqtt_client: ^10.5.1

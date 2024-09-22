@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:kachow_app/obdservice.dart';
 import 'package:mqtt_client/mqtt_client.dart';
+import 'package:kachow_app/geolocation.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
@@ -13,6 +14,7 @@ class Mqttservice {
   static String identifier = "carro";
   static String topicVelocidade = 'TEF/carro/attrs/v';
   static String topicRPM = 'TEF/carro/attrs/r';
+  static String topicGeolocalizacao = 'TEF/carro/attrs/g';
   // static String topicIntake = 'TEF/carro/attrs/i';
   static String topicDataColeta = 'TEF/carro/attrs/d';
 
@@ -65,6 +67,10 @@ class Mqttservice {
     //   mensagem = TrataMensagemIntake(message.trim());
     //   topic = topicIntake;
     // }
+    if (message.contains("G")) {
+      mensagem = TrazGeolocalizacao();
+      topic = topicGeolocalizacao;
+    }
     if (isValidDateTimeFormat(message)) {
       mensagem = message;
       topic = topicDataColeta;
@@ -78,7 +84,8 @@ class Mqttservice {
     // Setup MQTT
     final client = await setupMqtt();
     publishMqttMessage(client, DateTime.now().toString());
-
+    //mande um g para sinalizar que é sobre geolocalização 
+    //publishMqttMessage(client, 'G');
     // Publish each message in the list
     try {
       for (var message in respostas) {
@@ -89,6 +96,13 @@ class Mqttservice {
     } catch (e) {
       client.disconnect();
     }
+  }
+
+
+  static String TrazGeolocalizacao() {
+    // fazer aqui a logica para retornar a latitude e longitude (concatenadas e separadas por ;)usando a biblioteca geolocator
+    String latitudeELongitude = Geolocation.TrataMensagemGeolocalizacao();
+    return latitudeELongitude;
   }
 
   static String TrataMensagemVelocidade(String mensagem) {
@@ -103,6 +117,8 @@ class Mqttservice {
     int speedInKmh = int.parse(velocidades[0].trim(), radix: 16);
     return speedInKmh.toString();
   }
+
+  
 
   static String TrataMensagemRPM(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0C'), '');
