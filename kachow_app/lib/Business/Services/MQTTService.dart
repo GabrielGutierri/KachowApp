@@ -1,22 +1,24 @@
 // Background task identifier
-import 'package:flutter/material.dart';
-import 'package:kachow_app/obdservice.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workmanager/workmanager.dart';
 
 class Mqttservice {
   static List<String> respostas = [];
-  static String mqttURL = "46.17.108.131";
-  static int mqttPort = 1883;
-  static String identifier = "carro";
-  static String topicVelocidade = 'TEF/carro/attrs/v';
-  static String topicRPM = 'TEF/carro/attrs/r';
-  // static String topicIntake = 'TEF/carro/attrs/i';
-  static String topicDataColeta = 'TEF/carro/attrs/d';
+  String mqttURL = "46.17.108.131";
+  int mqttPort = 1883;
+  String identifier = "carro";
+  String topicVelocidade = 'TEF/carro/attrs/v';
+  String topicRPM = 'TEF/carro/attrs/r';
+  String topicLatitude = 'TEF/carro/attrs/la';
+  String topicLongitude = 'TEF/carro/attrs/lo';
+  String topicDataColeta = 'TEF/carro/attrs/d';
 
-  static Future<MqttServerClient> setupMqtt() async {
+  Future<MqttServerClient> setupMqtt() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String deviceID = prefs.getString('deviceID') ?? "carro";
+    identifier.replaceFirst('carro', deviceID);
+
     final client = MqttServerClient.withPort(mqttURL, identifier, mqttPort);
     client.logging(on: true);
     client.keepAlivePeriod = 20;
@@ -29,13 +31,12 @@ class Mqttservice {
     try {
       await client.connect();
       if (client.connectionStatus!.state == MqttConnectionState.connected) {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        String deviceID = prefs.getString('deviceID') ?? "carro";
-        identifier.replaceFirst('carro', deviceID);
         topicVelocidade.replaceFirst('carro', deviceID);
         // topicIntake.replaceAll('carro', deviceID);
         topicRPM.replaceFirst('carro', deviceID);
         topicDataColeta.replaceFirst('carro', deviceID);
+        topicLongitude = topicLongitude.replaceFirst('carro', deviceID);
+        topicLatitude = topicLatitude.replaceFirst('carro', deviceID);
         print('Conectado ao broker MQTT');
       } else {
         print('Falha na conexão');
@@ -49,7 +50,7 @@ class Mqttservice {
     return client;
   }
 
-  static void publishMqttMessage(MqttServerClient client, String message) {
+  void publishMqttMessage(MqttServerClient client, String message) {
     final builder = MqttClientPayloadBuilder();
     String mensagem = "";
     String topic = "";
@@ -65,6 +66,14 @@ class Mqttservice {
     //   mensagem = TrataMensagemIntake(message.trim());
     //   topic = topicIntake;
     // }
+
+    if (message.contains("LAT")) {
+      mensagem = message.replaceAll("LAT", "").trim();
+      topic = topicLatitude;
+    }
+    if (message.contains("LON")) {
+      mensagem = message.replaceAll("LON", "").trim();
+    }
     if (isValidDateTimeFormat(message)) {
       mensagem = message;
       topic = topicDataColeta;
@@ -74,7 +83,7 @@ class Mqttservice {
     client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
   }
 
-  static Future<void> checkListAndPublish() async {
+  Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
     publishMqttMessage(client, DateTime.now().toString());
@@ -91,7 +100,7 @@ class Mqttservice {
     }
   }
 
-  static String TrataMensagemVelocidade(String mensagem) {
+  String TrataMensagemVelocidade(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'41 0D'), '');
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0D'), '');
 
@@ -104,7 +113,7 @@ class Mqttservice {
     return speedInKmh.toString();
   }
 
-  static String TrataMensagemRPM(String mensagem) {
+  String TrataMensagemRPM(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0C'), '');
     mensagem = mensagem.trim().replaceAll(RegExp(r'41 0C'), '');
 
@@ -121,7 +130,7 @@ class Mqttservice {
     return rpm.toString();
   }
 
-  static String TrataMensagemIntake(String mensagem) {
+  String TrataMensagemIntake(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0B'), '');
     mensagem = mensagem.trim().replaceAll(RegExp(r'41 0B'), '');
     RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
@@ -132,7 +141,7 @@ class Mqttservice {
     return kpa.toString();
   }
 
-  static bool isValidDateTimeFormat(String input) {
+  bool isValidDateTimeFormat(String input) {
     try {
       DateTime.parse(input); // Tenta fazer o parse da string para DateTime
       return true; // Se bem-sucedido, retorna true
