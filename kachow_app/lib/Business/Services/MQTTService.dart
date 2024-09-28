@@ -1,6 +1,5 @@
 // Background task identifier
 import 'package:mqtt_client/mqtt_client.dart';
-import 'package:kachow_app/geolocation.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -76,6 +75,7 @@ class Mqttservice {
     }
     if (message.contains("LON")) {
       mensagem = message.replaceAll("LON", "").trim();
+      topic = topicLongitude;
     }
     if (isValidDateTimeFormat(message)) {
       mensagem = message;
