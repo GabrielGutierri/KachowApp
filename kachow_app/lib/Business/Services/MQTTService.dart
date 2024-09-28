@@ -1,5 +1,6 @@
 // Background task identifier
 import 'package:mqtt_client/mqtt_client.dart';
+import 'package:kachow_app/geolocation.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -54,10 +55,12 @@ class Mqttservice {
     final builder = MqttClientPayloadBuilder();
     String mensagem = "";
     String topic = "";
+
     if (message.contains("01 0D")) {
       mensagem = TrataMensagemVelocidade(message.trim());
       topic = topicVelocidade;
     }
+
     if (message.contains("01 0C")) {
       mensagem = TrataMensagemRPM(message.trim());
       topic = topicRPM;
@@ -78,16 +81,14 @@ class Mqttservice {
       mensagem = message;
       topic = topicDataColeta;
     }
-
     builder.addUTF8String(mensagem);
+
     client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
   }
 
   Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
-    publishMqttMessage(client, DateTime.now().toString());
-
     // Publish each message in the list
     try {
       for (var message in respostas) {
