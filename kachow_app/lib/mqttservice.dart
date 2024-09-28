@@ -67,11 +67,11 @@ class Mqttservice {
     }
     
     if (message.contains("LAT")) {
-      mensagem = await TrazLatitude();
+      mensagem = message.replaceAll("LAT","").trim();
       topic = topicLatitude;
     }
     if (message.contains("LON")) {
-      mensagem = await TrazLongitude();
+      mensagem = message.replaceAll("LON","").trim();
       topic = topicLongitude;
     }
     
@@ -87,10 +87,6 @@ class Mqttservice {
   static Future<void> checkListAndPublish() async {
     // Setup MQTT
     final client = await setupMqtt();
-    // Publica a geolocalização com a mensagem "L"
-    publishMqttMessage(client, 'LAT');
-    publishMqttMessage(client, 'LON');
-
     // Publish each message in the list
     try {
       for (var message in respostas) {

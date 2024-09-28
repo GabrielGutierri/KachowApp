@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:kachow_app/geolocation.dart';
 import 'package:kachow_app/mqttservice.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -53,6 +54,11 @@ class Obdservice {
 
   static Future<void> EnviaComandos(listaComandos, connection) async {
     await Future.delayed(Duration(seconds: 1));
+    String geolocalizacao = await Geolocation.TrataMensagemGeolocalizacao();
+    String latitude = "LAT" + geolocalizacao.split(";")[0];
+    String longitude = "LON" + geolocalizacao.split(";")[1];
+    Mqttservice.respostas.add(latitude);
+    Mqttservice.respostas.add(longitude);
     // for (var comando in listaComandos) {
     //   String resposta = await enviarComando(comando, connection);
     //   Mqttservice.respostas.add(resposta);
