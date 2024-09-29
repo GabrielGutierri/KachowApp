@@ -9,7 +9,7 @@ class GeolocationService {
     try {
       // Aguardando a obtenção da geolocalização
       Position position = await _getGeoLocation();
-      print('position - > ' + latitudeLongitude);
+      print('position - > $latitudeLongitude');
       // Concatenando latitude e longitude separadas por ;
       latitudeLongitude = "${position.latitude};${position.longitude}";
     } catch (e) {
@@ -17,7 +17,7 @@ class GeolocationService {
       print('Erro ao obter a localização: $e');
     }
 
-    print('latitudeLongitude - > ' + latitudeLongitude);
+    print('latitudeLongitude - > $latitudeLongitude');
     // Retornando a string com latitude e longitude
     return latitudeLongitude;
   }

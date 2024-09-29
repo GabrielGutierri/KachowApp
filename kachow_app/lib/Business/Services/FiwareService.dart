@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 class Fiwareservice {
-  String _ip = "46.17.108.131";
+  final String _ip = "46.17.108.131";
   Future<void> SalvarEntidadeVeiculo(IdentificacaoVeiculo veiculo) async {
     String deviceID = veiculo.placa;
     String deviceName = "urn:ngsi-ld:${veiculo.nome}:${veiculo.placa}";
@@ -19,13 +19,13 @@ class Fiwareservice {
   Future<void> ProvisionarDispositivo(
       String deviceID, String deviceName) async {
     //enviar um post para a url http://{{url}}:4041/iot/devices
-    var urlDevice = Uri.parse("http://${_ip}:4041/iot/devices");
+    var urlDevice = Uri.parse("http://$_ip:4041/iot/devices");
 
     var body = {
       "devices": [
         {
-          "device_id": "${deviceID}",
-          "entity_name": "${deviceName}",
+          "device_id": deviceID,
+          "entity_name": deviceName,
           "entity_type": "Carro",
           "protocol": "PDI-IoTA-UltraLight",
           "transport": "MQTT",
@@ -48,10 +48,10 @@ class Fiwareservice {
   }
 
   Future<void> AdicionarSubscription(String deviceName) async {
-    var urlSubscription = Uri.parse("http://${_ip}:1026/v2/subscriptions/");
+    var urlSubscription = Uri.parse("http://$_ip:1026/v2/subscriptions/");
     var body = {
       "description":
-          "Notificar STH Comet de mudanças em ${deviceName}", // Descrição da notificação
+          "Notificar STH Comet de mudanças em $deviceName", // Descrição da notificação
       "subject": {
         "entities": [
           {"id": deviceName, "type": "Carro"}
@@ -67,7 +67,7 @@ class Fiwareservice {
         }
       },
       "notification": {
-        "http": {"url": "http://${_ip}:8666/notify"},
+        "http": {"url": "http://$_ip:8666/notify"},
         "attrs": [
           "velocidade",
           "rpm",
@@ -88,7 +88,7 @@ class Fiwareservice {
   }
 
   Future<void> CriarEntidadeOrion(String deviceName) async {
-    var urlOrion = Uri.parse("http://${_ip}:1026/v2/entities");
+    var urlOrion = Uri.parse("http://$_ip:1026/v2/entities");
     var body = {
       "id": deviceName, //substituir carro pelo entity_name do passo anterior
       "type": "Carro",
@@ -108,7 +108,7 @@ class Fiwareservice {
 
   Future<bool> VerificaDispositivoExistente(
       String deviceID, String deviceName) async {
-    var url = Uri.parse("http://${_ip}:4041/iot/devices/${deviceID}");
+    var url = Uri.parse("http://$_ip:4041/iot/devices/$deviceID");
     Response response = await http.get(url, headers: {
       "Content-Type": "application/json",
       "fiware-service": "smart",

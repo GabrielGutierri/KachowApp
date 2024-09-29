@@ -8,11 +8,11 @@ class IdentificacaoCarroController {
 
   Future<void> salvarCarro(String nome, String placa) async {
     await _fiwareservice.SalvarEntidadeVeiculo(
-        new IdentificacaoVeiculo(nome: nome, placa: placa));
+        IdentificacaoVeiculo(nome: nome, placa: placa));
   }
 
   Future<bool> validarCarro(String nome, String placa) async {
-    String deviceName = "urn:ngsi-ld:${nome}:${placa}";
+    String deviceName = "urn:ngsi-ld:$nome:$placa";
     return await _fiwareservice.VerificaDispositivoExistente(placa, deviceName);
   }
 }

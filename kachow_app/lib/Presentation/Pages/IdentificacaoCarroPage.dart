@@ -5,7 +5,7 @@ import 'package:kachow_app/IoC/DependencyFactory.dart';
 class IdentificacaoCarroPage extends StatefulWidget {
   final IdentificacaoCarroController _identificacaoCarroController;
 
-  IdentificacaoCarroPage(this._identificacaoCarroController);
+  const IdentificacaoCarroPage(this._identificacaoCarroController, {super.key});
   @override
   _IdentificacaoCarroPageState createState() =>
       _IdentificacaoCarroPageState(_identificacaoCarroController);
@@ -52,7 +52,7 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cadastro de Carro'),
+        title: const Text('Cadastro de Carro'),
       ),
       body: Center(
         child: Padding(
@@ -63,24 +63,24 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
             children: [
               TextField(
                 controller: _nomeController,
-                decoration: InputDecoration(labelText: 'Nome do carro'),
+                decoration: const InputDecoration(labelText: 'Nome do carro'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: _placaController,
-                decoration: InputDecoration(labelText: 'Placa do carro'),
+                decoration: const InputDecoration(labelText: 'Placa do carro'),
               ),
-              SizedBox(height: 40),
+              const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: _loginOuCadastrar,
-                child: Text('Entrar'),
+                child: const Text('Entrar'),
               ),
               if (_mensagemErro != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 20),
                   child: Text(
                     _mensagemErro!,
-                    style: TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red),
                   ),
                 ),
             ],

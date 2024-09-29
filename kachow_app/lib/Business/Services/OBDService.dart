@@ -10,13 +10,13 @@ class Obdservice {
 
   final Mqttservice _mqttservice;
   final GeolocationService _geolocationService;
-
+  StreamSubscription<Uint8List>? subscription;
   Obdservice(this._mqttservice, this._geolocationService);
 
   void iniciarEscuta(BluetoothConnection? connection) {
-    connection!.input!.listen((data) {
-      Completer<String> completer = respostaQueue.removeFirst();
+    subscription = connection!.input!.listen((data) {
       String resposta = String.fromCharCodes(data);
+      Completer<String> completer = respostaQueue.removeFirst();
       completer.complete(resposta);
     });
   }
@@ -44,7 +44,6 @@ class Obdservice {
 
     try {
       if (connection != null) {
-        iniciarEscuta(connection);
         while (true) {
           await EnviaComandos(listaComandos, connection);
         }
@@ -55,12 +54,12 @@ class Obdservice {
   }
 
   Future<void> EnviaComandos(listaComandos, connection) async {
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
 
     String geolocalizacao =
         await _geolocationService.TrataMensagemGeolocalizacao();
-    String latitude = "LAT" + geolocalizacao.split(";")[0];
-    String longitude = "LON" + geolocalizacao.split(";")[1];
+    String latitude = "LAT${geolocalizacao.split(";")[0]}";
+    String longitude = "LON${geolocalizacao.split(";")[1]}";
     Mqttservice.respostas.add(latitude);
     Mqttservice.respostas.add(longitude);
 
@@ -69,9 +68,25 @@ class Obdservice {
       Mqttservice.respostas.add(resposta);
     }
 
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     await _mqttservice.checkListAndPublish();
     Mqttservice.respostas.clear();
     print(Mqttservice.respostas);
+  }
+
+  Future<bool> TestarConexaoELM(connection) async {
+    try {
+      String comando = "01 0D\r";
+      iniciarEscuta(connection);
+      String resposta = await enviarComando(comando, connection);
+      if (resposta.contains("01 0D")) {
+        return true;
+      }
+      subscription?.cancel();
+      return false;
+    } catch (e) {
+      subscription?.cancel();
+      return false;
+    }
   }
 }
