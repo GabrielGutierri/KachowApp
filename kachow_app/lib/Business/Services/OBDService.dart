@@ -3,18 +3,18 @@ import 'dart:collection';
 import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
-import 'package:kachow_app/Business/Services/MQTTService.dart';
+import 'package:kachow_app/Business/Services/HTTPService.dart';
 
 class Obdservice {
   final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
 
-  final Mqttservice _mqttservice;
+  final HttpService _httpService;
   final GeolocationService _geolocationService;
-  StreamSubscription<Uint8List>? subscription;
-  Obdservice(this._mqttservice, this._geolocationService);
 
-  void iniciarEscuta(BluetoothConnection? connection) {
-    subscription = connection!.input!.listen((data) {
+  Obdservice(this._httpService, this._geolocationService);
+
+  Future iniciarEscuta(BluetoothConnection? connection) async {
+    connection!.input!.listen((data) {
       String resposta = String.fromCharCodes(data);
       Completer<String> completer = respostaQueue.removeFirst();
       completer.complete(resposta);
@@ -44,6 +44,7 @@ class Obdservice {
 
     try {
       if (connection != null) {
+        await iniciarEscuta(connection);
         while (true) {
           await EnviaComandos(listaComandos, connection);
         }
@@ -54,38 +55,48 @@ class Obdservice {
   }
 
   Future<void> EnviaComandos(listaComandos, connection) async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 5));
 
     String geolocalizacao =
         await _geolocationService.TrataMensagemGeolocalizacao();
     String latitude = "LAT${geolocalizacao.split(";")[0]}";
     String longitude = "LON${geolocalizacao.split(";")[1]}";
-    Mqttservice.respostas.add(latitude);
-    Mqttservice.respostas.add(longitude);
+    HttpService.respostas.add(latitude);
+    HttpService.respostas.add(longitude);
 
     for (var comando in listaComandos) {
       String resposta = await enviarComando(comando, connection);
-      Mqttservice.respostas.add(resposta);
+      HttpService.respostas.add(
+          resposta); //vale a pensa mudar para salvar na memoria, ao inves de uma fila?
     }
 
-    await Future.delayed(const Duration(seconds: 1));
-    await _mqttservice.checkListAndPublish();
-    Mqttservice.respostas.clear();
-    print(Mqttservice.respostas);
+    //todas as respostas estão no array
+    try {
+      await Future.delayed(const Duration(seconds: 5));
+      await _httpService.checkListAndPublish();
+      HttpService.respostas.clear();
+    } catch (e) {
+      HttpService.respostas.clear();
+    }
   }
 
-  Future<bool> TestarConexaoELM(connection) async {
+  Future<String> testaComandoOBD(
+      String comando, BluetoothConnection? connection) async {
+    return await enviarComando(comando, connection);
+  }
+
+  Future<bool> TestarConexaoELM(BluetoothConnection? connection) async {
     try {
-      String comando = "01 0D\r";
-      iniciarEscuta(connection);
+      String comando = "09 02\r";
+      await iniciarEscuta(connection);
       String resposta = await enviarComando(comando, connection);
-      if (resposta.contains("01 0D")) {
+
+      if (resposta.contains("09 02")) {
+        print(resposta);
         return true;
       }
-      subscription?.cancel();
       return false;
     } catch (e) {
-      subscription?.cancel();
       return false;
     }
   }

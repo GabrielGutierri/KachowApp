@@ -13,6 +13,7 @@ class BluetoothPage extends StatefulWidget {
 
 class _BluetoothPageState extends State<BluetoothPage> {
   bool bluetoothValido = false;
+  final TextEditingController _comandoOBDController = TextEditingController();
 
   String _montaTextoDispositivo(Device dispositivo) {
     if (dispositivo.name!.isEmpty) {
@@ -37,6 +38,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
         });
         Navigator.of(context).pop(); // Fecha o modal após a conexão
       }
+      bluetoothValido = true;
     } catch (e) {
       _exibirMensagemErro(
           context, 'Erro ao conectar ao dispositivo Bluetooth.');
@@ -65,6 +67,28 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   Future<void> IniciarRotinaComandos() async {
     await widget._bluetoothController.rotinaComandos();
+  }
+
+  Future<void> _testarComandoOBD(BuildContext context) async {
+    var comando = _comandoOBDController.text;
+    var resposta = await widget._bluetoothController.testarComandoOBD(comando);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Resposta'),
+          content: Text(resposta),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> exibirModalDispositivos(BuildContext context) async {
@@ -110,6 +134,39 @@ class _BluetoothPageState extends State<BluetoothPage> {
     );
   }
 
+  Future<void> TestarComando(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Testar um comando OBD'),
+          content: Column(
+            children: [
+              TextField(
+                controller: _comandoOBDController,
+                decoration: const InputDecoration(labelText: 'Comando OBD'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await _testarComandoOBD(context);
+                },
+                child: const Text('Testar'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancelar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,6 +190,12 @@ class _BluetoothPageState extends State<BluetoothPage> {
                     },
                     child: const Text('Enviar comandos'),
                   ),
+            ElevatedButton(
+              onPressed: () async {
+                await TestarComando(context);
+              },
+              child: const Text('Testar um comando'),
+            ),
           ],
         ),
       ),

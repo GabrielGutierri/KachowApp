@@ -28,12 +28,13 @@ class Fiwareservice {
           "entity_name": deviceName,
           "entity_type": "Carro",
           "protocol": "PDI-IoTA-UltraLight",
-          "transport": "MQTT",
+          "transport": "HTTP",
           "attributes": [
-            {"object_id": "v", "name": "velocidade", "type": "Text"},
-            {"object_id": "r", "name": "rpm", "type": "Text"},
-            {"object_id": "g", "name": "geolocalizacao", "type": "Text"},
-            {"object_id": "a", "name": "acelerometro", "type": "Text"},
+            {"object_id": "v", "name": "velocidade", "type": "float"},
+            {"object_id": "r", "name": "rpm", "type": "float"},
+            {"object_id": "la", "name": "latitude", "type": "text"},
+            {"object_id": "lo", "name": "longitude", "type": "text"},
+            {"object_id": "lo", "name": "acelerometro", "type": "text"},
             {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
           ]
         }
@@ -60,7 +61,8 @@ class Fiwareservice {
           "attrs": [
             "velocidade",
             "rpm",
-            "geolocalizacao",
+            "latitude",
+            "longitude",
             "acelerometro",
             "dataColetaDados"
           ]
@@ -71,7 +73,8 @@ class Fiwareservice {
         "attrs": [
           "velocidade",
           "rpm",
-          "geolocalizacao",
+          "latitude",
+          "longitude",
           "acelerometro",
           "dataColetaDados"
         ],
@@ -89,12 +92,13 @@ class Fiwareservice {
 
   Future<void> CriarEntidadeOrion(String deviceName) async {
     var urlOrion = Uri.parse("http://$_ip:1026/v2/entities");
-    var body = {
+    Map<String, dynamic> body = {
       "id": deviceName, //substituir carro pelo entity_name do passo anterior
       "type": "Carro",
-      "velocidade": {"type": "Text", "value": "0"},
-      "rpm": {"type": "Text", "value": "0"},
-      "geolocalizacao": {"type": "Text", "value": "0"},
+      "velocidade": {"type": "float", "value": "0"},
+      "rpm": {"type": "float", "value": "0"},
+      "latitude": {"type": "text", "value": "0"},
+      "longitude": {"type": "text", "value": "0"},
       "acelerometro": {"type": "Text", "value": "0"},
       "dataColetaDados": {"type": "Text", "value": "0"}
     };

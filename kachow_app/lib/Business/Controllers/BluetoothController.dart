@@ -12,6 +12,8 @@ class BluetoothController {
   final _device = BluetoothClassic();
   BluetoothConnection? _connection = null;
 
+  Device? _dispositivoOBD = null;
+
   Future<void> GetPairedDevices() async {
     PermissionStatus bluetoothStatus = await Permission.bluetoothScan.request();
     PermissionStatus bluetoothConnect =
@@ -38,7 +40,8 @@ class BluetoothController {
   }
 
   Future rotinaComandos() async {
-    BluetoothConnection? newConnection = _connection;
+    BluetoothConnection? newConnection =
+        await BluetoothConnection.toAddress(_dispositivoOBD!.address);
     await _obdservice.rotinaComandos(newConnection);
   }
 
@@ -54,17 +57,26 @@ class BluetoothController {
     return devices;
   }
 
+  Future<String> testarComandoOBD(String comando) async {
+    BluetoothConnection? newConnection =
+        await BluetoothConnection.toAddress(_dispositivoOBD!.address);
+    String resposta = await _obdservice.testaComandoOBD(comando, newConnection);
+    return resposta;
+  }
+
   Future<bool> ConectarAoDispositivo(Device dispositivo) async {
     BluetoothConnection connectionB =
         await BluetoothConnection.toAddress(dispositivo.address);
     if (connectionB.isConnected) {
       bool dispositivoOBD = await _obdservice.TestarConexaoELM(connectionB);
+      await connectionB.finish();
+      connectionB.dispose();
+
       if (dispositivoOBD) {
-        _connection = connectionB;
+        _dispositivoOBD = dispositivo;
         return true;
       }
     }
-    _connection = null;
     return false;
   }
 }
