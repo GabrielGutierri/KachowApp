@@ -34,7 +34,6 @@ class Fiwareservice {
             {"object_id": "r", "name": "rpm", "type": "float"},
             {"object_id": "la", "name": "latitude", "type": "text"},
             {"object_id": "lo", "name": "longitude", "type": "text"},
-            {"object_id": "lo", "name": "acelerometro", "type": "text"},
             {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
           ]
         }
@@ -63,7 +62,6 @@ class Fiwareservice {
             "rpm",
             "latitude",
             "longitude",
-            "acelerometro",
             "dataColetaDados"
           ]
         }
@@ -75,7 +73,6 @@ class Fiwareservice {
           "rpm",
           "latitude",
           "longitude",
-          "acelerometro",
           "dataColetaDados"
         ],
         "attrsFormat":
@@ -97,10 +94,9 @@ class Fiwareservice {
       "type": "Carro",
       "velocidade": {"type": "float", "value": "0"},
       "rpm": {"type": "float", "value": "0"},
-      "latitude": {"type": "text", "value": "0"},
-      "longitude": {"type": "text", "value": "0"},
-      "acelerometro": {"type": "Text", "value": "0"},
-      "dataColetaDados": {"type": "Text", "value": "0"}
+      "latitude": {"type": "text", "value": ""},
+      "longitude": {"type": "text", "value": ""},
+      "dataColetaDados": {"type": "text", "value": ""}
     };
 
     await http.post(urlOrion, body: json.encode(body), headers: {

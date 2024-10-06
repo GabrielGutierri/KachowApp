@@ -81,14 +81,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
-  dylib:
-    dependency: transitive
-    description:
-      name: dylib
-      sha256: bf609b3eb6492a3309b3d1dbe8f83a4031de5535dd7686be33487051cc760bb0
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.3"
   event_bus:
     dependency: transitive
     description:
@@ -134,22 +126,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_bluetooth_serial:
+  flutter_blue_classic:
     dependency: "direct main"
     description:
-      name: flutter_bluetooth_serial
-      sha256: "85ae82c4099b2b1facdc54e75e1bcfa88dc7f719e55dc886bb0b648cb16636b1"
+      name: flutter_blue_classic
+      sha256: ee573077a2cf6df7449bb3f9023a6e9a202a407ffca000bab519d90248c21ff4
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.0"
-  flutter_libserialport:
-    dependency: "direct main"
-    description:
-      name: flutter_libserialport
-      sha256: "20c320dcde8592a16f9badc0cacad61b1fb283dbec647b6ebfc1020f8274c67b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.0"
+    version: "0.0.3"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -264,14 +248,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.1"
-  libserialport:
-    dependency: transitive
-    description:
-      name: libserialport
-      sha256: "392e1592def65282429832ec66fa25e9e163d3b37716b97691482e2406720727"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.0+1"
   lints:
     dependency: transitive
     description:

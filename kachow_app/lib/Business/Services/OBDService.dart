@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:typed_data';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Business/Services/HTTPService.dart';
 
@@ -56,6 +56,9 @@ class Obdservice {
 
   Future<void> EnviaComandos(listaComandos, connection) async {
     await Future.delayed(const Duration(seconds: 5));
+
+    String dataColeta = DateTime.now().toString();
+    HttpService.respostas.add(dataColeta);
 
     String geolocalizacao =
         await _geolocationService.TrataMensagemGeolocalizacao();

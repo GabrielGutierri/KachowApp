@@ -14,43 +14,45 @@ class HttpService {
       "rpm": {"type": "float", "value": 0},
       "latitude": {"type": "text", "value": ""},
       "longitude": {"type": "text", "value": ""},
-      "acelerometro": {"type": "text", "value": ""}
+      "dataColetaDados": {"type": "Text", "value": ""}
     };
-    for (var message in respostas) {
-      if (message.contains("01 0D")) {
-        body["velocidade"]["value"] = TrataMensagemVelocidade(message.trim());
+    if (respostas.length == 5) {
+      for (var message in respostas) {
+        if (message.contains("01 0D")) {
+          body["velocidade"]["value"] = TrataMensagemVelocidade(message.trim());
+          break;
+        }
+        if (message.contains("01 0C")) {
+          body["rpm"]["value"] = TrataMensagemRPM(message.trim());
+          break;
+        }
+        if (message.contains("LAT")) {
+          body["latitude"]["value"] = message.replaceAll("LAT", "").trim();
+          break;
+        }
+        if (message.contains("LON")) {
+          body["longitude"]["value"] = message.replaceAll("LON", "").trim();
+          break;
+        }
+        if (isValidDateTimeFormat(message)) {
+          body["dataColetaDados"]["value"] = message;
+          break;
+        }
       }
 
-      if (message.contains("01 0C")) {
-        body["rpm"]["value"] = TrataMensagemRPM(message.trim());
-      }
-      if (message.contains("LAT")) {
-        body["latitude"]["value"] = message.replaceAll("LAT", "").trim();
-      }
-      if (message.contains("LON")) {
-        body["longitude"]["value"] = message.replaceAll("LON", "").trim();
-      }
-      if (isValidDateTimeFormat(message)) {
-        body["dataColetaDados"]["value"] = message;
-      }
-    }
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String deviceName = prefs.getString('deviceName') ?? "";
+      if (deviceName != "") {
+        String urlUpdate =
+            'http://$ipFiware:$orionPort/v2/entities/$deviceName/attrs';
+        var url = Uri.parse(urlUpdate);
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String deviceName = prefs.getString('deviceName') ?? "";
-    if (deviceName != "") {
-      String urlUpdate =
-          'http://$ipFiware:$orionPort/v2/entities/$deviceName/attrs';
-      var url = Uri.parse(urlUpdate);
-      var response = await http.post(url, body: json.encode(body), headers: {
-        "Content-Type": "application/json",
-        "fiware-service": "smart",
-        "fiware-servicepath": "/"
-      });
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw new Exception();
+        await http.post(url, body: json.encode(body), headers: {
+          "Content-Type": "application/json",
+          "fiware-service": "smart",
+          "fiware-servicepath": "/"
+        });
       }
-    } else {
-      throw new Exception();
     }
   }
 
