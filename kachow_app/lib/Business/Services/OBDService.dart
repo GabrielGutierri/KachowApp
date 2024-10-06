@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:typed_data';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Business/Services/HTTPService.dart';
 

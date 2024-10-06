@@ -51,22 +51,19 @@ class HttpService {
       }
     }
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String deviceName = prefs.getString('deviceName') ?? "";
-    if (deviceName != "") {
-      String urlUpdate =
-          'http://$ipFiware:$orionPort/v2/entities/$deviceName/attrs';
-      var url = Uri.parse(urlUpdate);
-      var response = await http.post(url, body: json.encode(body), headers: {
-        "Content-Type": "application/json",
-        "fiware-service": "smart",
-        "fiware-servicepath": "/"
-      });
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw new Exception();
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String deviceName = prefs.getString('deviceName') ?? "";
+      if (deviceName != "") {
+        String urlUpdate =
+            'http://$ipFiware:$orionPort/v2/entities/$deviceName/attrs';
+        var url = Uri.parse(urlUpdate);
+
+        await http.post(url, body: json.encode(body), headers: {
+          "Content-Type": "application/json",
+          "fiware-service": "smart",
+          "fiware-servicepath": "/"
+        });
       }
-    } else {
-      throw new Exception();
     }
   }
 

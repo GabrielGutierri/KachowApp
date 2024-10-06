@@ -1,6 +1,6 @@
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:bluetooth_classic/models/device.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -11,7 +11,7 @@ class BluetoothController {
 
   final _device = BluetoothClassic();
   BluetoothConnection? _connection = null;
-
+  final FlutterBlueClassic bluePlugin = FlutterBlueClassic();
   Device? _dispositivoOBD = null;
 
   Future<void> GetPairedDevices() async {
@@ -29,9 +29,9 @@ class BluetoothController {
       }
 
       if (obdDevice != null) {
-        BluetoothConnection connectionB =
-            await BluetoothConnection.toAddress(obdDevice.address);
-        if (connectionB.isConnected) {
+        BluetoothConnection? connectionB =
+            await bluePlugin.connect(obdDevice.address);
+        if (connectionB!.isConnected) {
           var connectionB;
           await _obdservice.rotinaComandos(connectionB);
         }
@@ -41,7 +41,7 @@ class BluetoothController {
 
   Future rotinaComandos() async {
     BluetoothConnection? newConnection =
-        await BluetoothConnection.toAddress(_dispositivoOBD!.address);
+        await bluePlugin.connect(_dispositivoOBD!.address);
     await _obdservice.rotinaComandos(newConnection);
   }
 
@@ -59,15 +59,16 @@ class BluetoothController {
 
   Future<String> testarComandoOBD(String comando) async {
     BluetoothConnection? newConnection =
-        await BluetoothConnection.toAddress(_dispositivoOBD!.address);
+        await bluePlugin.connect(_dispositivoOBD!.address);
+
     String resposta = await _obdservice.testaComandoOBD(comando, newConnection);
     return resposta;
   }
 
   Future<bool> ConectarAoDispositivo(Device dispositivo) async {
-    BluetoothConnection connectionB =
-        await BluetoothConnection.toAddress(dispositivo.address);
-    if (connectionB.isConnected) {
+    BluetoothConnection? connectionB =
+        await bluePlugin.connect(dispositivo.address);
+    if (connectionB!.isConnected) {
       bool dispositivoOBD = await _obdservice.TestarConexaoELM(connectionB);
       await connectionB.finish();
       connectionB.dispose();
