@@ -32,9 +32,16 @@ class Fiwareservice {
           "attributes": [
             {"object_id": "v", "name": "velocidade", "type": "float"},
             {"object_id": "r", "name": "rpm", "type": "float"},
-            {"object_id": "la", "name": "latitude", "type": "text"},
-            {"object_id": "lo", "name": "longitude", "type": "text"},
-            {"object_id": "lo", "name": "acelerometro", "type": "text"},
+            {
+              "object_id": "g",
+              "name": "location",
+              "type": "geo:json",
+              "value": {
+                "type": "Point",
+                "coordinates": [0, 0] // Placeholder para coordenadas reais
+              }
+            },
+            {"object_id": "a", "name": "acelerometro", "type": "float"},
             {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
           ]
         }
@@ -61,8 +68,7 @@ class Fiwareservice {
           "attrs": [
             "velocidade",
             "rpm",
-            "latitude",
-            "longitude",
+            "location",
             "acelerometro",
             "dataColetaDados"
           ]
@@ -73,8 +79,7 @@ class Fiwareservice {
         "attrs": [
           "velocidade",
           "rpm",
-          "latitude",
-          "longitude",
+          "location",
           "acelerometro",
           "dataColetaDados"
         ],
@@ -97,9 +102,14 @@ class Fiwareservice {
       "type": "Carro",
       "velocidade": {"type": "float", "value": "0"},
       "rpm": {"type": "float", "value": "0"},
-      "latitude": {"type": "text", "value": "0"},
-      "longitude": {"type": "text", "value": "0"},
-      "acelerometro": {"type": "Text", "value": "0"},
+      "location": {
+        "type": "geo:json",
+        "value": {
+          "type": "Point",
+          "coordinates": [0, 0] // Placeholder para coordenadas reais
+        }
+      },
+      "acelerometro": {"type": "float", "value": "0"},
       "dataColetaDados": {"type": "Text", "value": "0"}
     };
 

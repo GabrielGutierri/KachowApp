@@ -57,18 +57,20 @@ class Obdservice {
   Future<void> EnviaComandos(listaComandos, connection) async {
     await Future.delayed(const Duration(seconds: 5));
 
-    String geolocalizacao =
-        await _geolocationService.TrataMensagemGeolocalizacao();
-    String latitude = "LAT${geolocalizacao.split(";")[0]}";
-    String longitude = "LON${geolocalizacao.split(";")[1]}";
-    HttpService.respostas.add(latitude);
-    HttpService.respostas.add(longitude);
+    // Obtém coordenadas no formato [longitude, latitude]
+    List<double> geolocalizacao = await _geolocationService.TrataMensagemGeolocalizacao();
+    String geolocation = "GEO${geolocalizacao[0]}"+";"+"${geolocalizacao[1]}";
+    HttpService.respostas.add(geolocation);
+
+    // Obtém a aceleração usando o GPS
+    double aceleracao = await _geolocationService.calculaAceleracaoSensor();
+    HttpService.respostas.add("ACE$aceleracao");
 
     for (var comando in listaComandos) {
       String resposta = await enviarComando(comando, connection);
       HttpService.respostas.add(
           resposta); //vale a pensa mudar para salvar na memoria, ao inves de uma fila?
-    }
+  }
 
     //todas as respostas estão no array
     try {

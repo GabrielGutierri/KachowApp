@@ -1,4 +1,3 @@
-// Background task identifier
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -12,10 +11,16 @@ class HttpService {
     Map<String, dynamic> body = {
       "velocidade": {"type": "float", "value": 0},
       "rpm": {"type": "float", "value": 0},
-      "latitude": {"type": "text", "value": ""},
-      "longitude": {"type": "text", "value": ""},
-      "acelerometro": {"type": "text", "value": ""}
+      "location": {
+        "type": "geo:json",
+        "value": {
+          "type": "Point",
+          "coordinates": [0.0, 0.0] // Coordenadas padrão
+        }
+      },
+      "acelerometro": {"type": "float", "value": 0.0}
     };
+
     for (var message in respostas) {
       if (message.contains("01 0D")) {
         body["velocidade"]["value"] = TrataMensagemVelocidade(message.trim());
@@ -24,12 +29,23 @@ class HttpService {
       if (message.contains("01 0C")) {
         body["rpm"]["value"] = TrataMensagemRPM(message.trim());
       }
-      if (message.contains("LAT")) {
-        body["latitude"]["value"] = message.replaceAll("LAT", "").trim();
+
+      if (message.contains("GEO")) {
+        // Remove "GEO" e separa a string com base no ";"
+        List<String> coordenadas = message.replaceAll("GEO", "").trim().split(";");
+
+        // Converte longitude e latitude de string para double
+        double longitude = double.parse(coordenadas[0]);
+        double latitude = double.parse(coordenadas[1]);
+
+        // Atualiza as coordenadas no body
+        body["location"]["value"]["coordinates"] = [longitude, latitude];
       }
-      if (message.contains("LON")) {
-        body["longitude"]["value"] = message.replaceAll("LON", "").trim();
+
+      if (message.contains("ACE")) {
+        body["acelerometro"]["value"] = double.parse(message.replaceAll("ACE", "").trim());
       }
+
       if (isValidDateTimeFormat(message)) {
         body["dataColetaDados"]["value"] = message;
       }
