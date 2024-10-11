@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
@@ -34,6 +35,14 @@ class Obdservice {
     return completer.future;
   }
 
+  Future<void> testarHttp() async {
+    while (true) {
+      await _httpService.testarHTTP();
+      var duracao = const Duration(seconds: 5);
+      sleep(duracao);
+    }
+  }
+
   Future rotinaComandos(BluetoothConnection? connection) async {
     //Velocidade, RPM, Intake manifold pressure, Data
     List<String> listaComandos = [
@@ -58,8 +67,10 @@ class Obdservice {
     await Future.delayed(const Duration(seconds: 5));
 
     // Obtém coordenadas no formato [longitude, latitude]
-    List<double> geolocalizacao = await _geolocationService.TrataMensagemGeolocalizacao();
-    String geolocation = "GEO${geolocalizacao[0]}"+";"+"${geolocalizacao[1]}";
+    List<double> geolocalizacao =
+        await _geolocationService.TrataMensagemGeolocalizacao();
+    String geolocation =
+        "GEO${geolocalizacao[0]}" + ";" + "${geolocalizacao[1]}";
     HttpService.respostas.add(geolocation);
 
     // Obtém a aceleração usando o GPS
@@ -70,7 +81,7 @@ class Obdservice {
       String resposta = await enviarComando(comando, connection);
       HttpService.respostas.add(
           resposta); //vale a pensa mudar para salvar na memoria, ao inves de uma fila?
-  }
+    }
 
     //todas as respostas estão no array
     try {
@@ -84,7 +95,9 @@ class Obdservice {
 
   Future<String> testaComandoOBD(
       String comando, BluetoothConnection? connection) async {
-    return await enviarComando(comando, connection);
+    String comandoEditado = comando + "\r";
+    await iniciarEscuta(connection);
+    return await enviarComando(comandoEditado, connection);
   }
 
   Future<bool> TestarConexaoELM(BluetoothConnection? connection) async {
@@ -93,8 +106,7 @@ class Obdservice {
       await iniciarEscuta(connection);
       String resposta = await enviarComando(comando, connection);
 
-      if (resposta.contains("09 02")) {
-        print(resposta);
+      if (resposta.contains("49 02")) {
         return true;
       }
       return false;

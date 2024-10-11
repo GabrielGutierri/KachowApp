@@ -38,7 +38,10 @@ class _BluetoothPageState extends State<BluetoothPage> {
         });
         Navigator.of(context).pop(); // Fecha o modal após a conexão
       }
-      bluetoothValido = true;
+      // setState(() {
+      //   bluetoothValido = true;
+      // });
+      Navigator.of(context).pop();
     } catch (e) {
       _exibirMensagemErro(
           context, 'Erro ao conectar ao dispositivo Bluetooth.');
@@ -177,25 +180,27 @@ class _BluetoothPageState extends State<BluetoothPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            (!bluetoothValido)
-                ? ElevatedButton(
-                    onPressed: () {
-                      exibirModalDispositivos(context);
-                    },
-                    child: const Text('Conectar'),
-                  )
-                : ElevatedButton(
-                    onPressed: () {
-                      IniciarRotinaComandos();
-                    },
-                    child: const Text('Enviar comandos'),
-                  ),
-            ElevatedButton(
-              onPressed: () async {
-                await TestarComando(context);
-              },
-              child: const Text('Testar um comando'),
-            ),
+            if (!bluetoothValido)
+              ElevatedButton(
+                onPressed: () {
+                  exibirModalDispositivos(context);
+                },
+                child: const Text('Conectar'),
+              )
+            else ...[
+              ElevatedButton(
+                onPressed: () async {
+                  await IniciarRotinaComandos();
+                },
+                child: const Text('Enviar comandos'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await TestarComando(context);
+                },
+                child: const Text('Testar um comando'),
+              )
+            ],
           ],
         ),
       ),

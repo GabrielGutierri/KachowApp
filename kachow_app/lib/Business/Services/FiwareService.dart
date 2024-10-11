@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart';
+import 'package:kachow_app/Domain/TO/RetornoDispositivoFiwareTO.dart';
+import 'package:kachow_app/Domain/TO/RetornoErroFiwareTO.dart';
 import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -11,6 +13,7 @@ class Fiwareservice {
     String deviceName = "urn:ngsi-ld:${veiculo.nome}:${veiculo.placa}";
 
     await ProvisionarDispositivo(deviceID, deviceName);
+    await CriarEntidadeOrion(deviceName);
     await AdicionarSubscription(deviceName);
     await CriarEntidadeOrion(deviceName);
     await ArmazenarValoresCarro(deviceID, deviceName);
@@ -100,8 +103,8 @@ class Fiwareservice {
     Map<String, dynamic> body = {
       "id": deviceName, //substituir carro pelo entity_name do passo anterior
       "type": "Carro",
-      "velocidade": {"type": "float", "value": "0"},
-      "rpm": {"type": "float", "value": "0"},
+      "velocidade": {"type": "float", "value": 0},
+      "rpm": {"type": "float", "value": 0},
       "location": {
         "type": "geo:json",
         "value": {
@@ -122,17 +125,36 @@ class Fiwareservice {
 
   Future<bool> VerificaDispositivoExistente(
       String deviceID, String deviceName) async {
-    var url = Uri.parse("http://$_ip:4041/iot/devices/$deviceID");
-    Response response = await http.get(url, headers: {
-      "Content-Type": "application/json",
-      "fiware-service": "smart",
-      "fiware-servicepath": "/"
-    });
-    if (response.statusCode > 200 && response.statusCode <= 300) {
-      await ArmazenarValoresCarro(deviceID, deviceName);
-      return true;
+    var url = Uri.parse("http://$_ip:1026/v2/entities/$deviceName");
+    Response response = await http.get(url,
+        headers: {"fiware-service": "smart", "fiware-servicepath": "/"});
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (respostaGetValida(response, deviceName)) {
+        await ArmazenarValoresCarro(deviceID, deviceName);
+        return true;
+      }
+      throw new Exception();
+    } else {
+      if (respostaNaoExisteValida(response)) {
+        return false;
+      }
+      throw new Exception();
     }
-    return false;
+  }
+
+  bool respostaGetValida(Response response, String deviceName) {
+    Map<String, dynamic> jsonMap = jsonDecode(response.body);
+    RetornoDispositivoFiwareTO dispositivo =
+        RetornoDispositivoFiwareTO.fromJson(jsonMap);
+    return dispositivo.id == deviceName && dispositivo.type == 'Carro';
+  }
+
+  bool respostaNaoExisteValida(Response response) {
+    Map<String, dynamic> jsonMap = jsonDecode(response.body);
+    RetornoErroFiwareTO retornoErro = RetornoErroFiwareTO.fromJson(jsonMap);
+
+    return retornoErro.description ==
+        "The requested entity has not been found. Check type and id";
   }
 
   Future<void> ArmazenarValoresCarro(String deviceID, String deviceName) async {

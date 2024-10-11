@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:ffi';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -6,6 +8,33 @@ class HttpService {
   static List<String> respostas = [];
   String ipFiware = "46.17.108.131";
   int orionPort = 1026;
+  var counter = 0;
+  Future<void> testarHTTP() async {
+    Map<String, dynamic> body = {
+      'velocidade': {'type': 'float', 'value': counter++},
+      'rpm': {'type': 'float', 'value': counter++},
+      'location': {
+        'type': 'geo:json',
+        'value': {
+          'type': 'Point',
+          'coordinates': [0.0, 0.0] // Coordenadas padrão
+        }
+      },
+      'acelerometro': {'type': 'float', 'value': 0.0},
+      'dataColetaDados': {'type': 'text', 'value': ''}
+    };
+    String urlUpdate =
+        'http://$ipFiware:$orionPort/v2/entities/urn:ngsi-ld:carro:009/attrs';
+    var url = Uri.parse(urlUpdate);
+
+    var objetoJson = json.encode(body);
+    var resposta = await http.post(url, body: objetoJson, headers: {
+      "Content-Type": "application/json",
+      "fiware-service": "smart",
+      "fiware-servicepath": "/"
+    });
+    print(resposta);
+  }
 
   Future<void> checkListAndPublish() async {
     Map<String, dynamic> body = {
@@ -18,21 +47,19 @@ class HttpService {
           "coordinates": [0.0, 0.0] // Coordenadas padrão
         }
       },
-      "acelerometro": {"type": "float", "value": 0.0}
+      "acelerometro": {"type": "float", "value": 0.0},
+      "dataColetaDados": {"type": "text", "value": ""}
     };
 
     for (var message in respostas) {
-      if (message.contains("01 0D")) {
+      if (message.contains("41 0D")) {
         body["velocidade"]["value"] = TrataMensagemVelocidade(message.trim());
-      }
-
-      if (message.contains("01 0C")) {
+      } else if (message.contains("41 0C")) {
         body["rpm"]["value"] = TrataMensagemRPM(message.trim());
-      }
-
-      if (message.contains("GEO")) {
+      } else if (message.contains("GEO")) {
         // Remove "GEO" e separa a string com base no ";"
-        List<String> coordenadas = message.replaceAll("GEO", "").trim().split(";");
+        List<String> coordenadas =
+            message.replaceAll("GEO", "").trim().split(";");
 
         // Converte longitude e latitude de string para double
         double longitude = double.parse(coordenadas[0]);
@@ -40,30 +67,26 @@ class HttpService {
 
         // Atualiza as coordenadas no body
         body["location"]["value"]["coordinates"] = [longitude, latitude];
-      }
-
-      if (message.contains("ACE")) {
-        body["acelerometro"]["value"] = double.parse(message.replaceAll("ACE", "").trim());
-      }
-
-      if (isValidDateTimeFormat(message)) {
+      } else if (message.contains("ACE")) {
+        body["acelerometro"]["value"] =
+            double.parse(message.replaceAll("ACE", "").trim());
+      } else if (isValidDateTimeFormat(message)) {
         body["dataColetaDados"]["value"] = message;
       }
     }
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String deviceName = prefs.getString('deviceName') ?? "";
-      if (deviceName != "") {
-        String urlUpdate =
-            'http://$ipFiware:$orionPort/v2/entities/$deviceName/attrs';
-        var url = Uri.parse(urlUpdate);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String deviceName = prefs.getString('deviceName') ?? "";
+    if (deviceName != "") {
+      String urlUpdate =
+          'http://$ipFiware:$orionPort/v2/entities/$deviceName/attrs';
+      var url = Uri.parse(urlUpdate);
 
-        await http.post(url, body: json.encode(body), headers: {
-          "Content-Type": "application/json",
-          "fiware-service": "smart",
-          "fiware-servicepath": "/"
-        });
-      }
+      await http.post(url, body: json.encode(body), headers: {
+        "Content-Type": "application/json",
+        "fiware-service": "smart",
+        "fiware-servicepath": "/"
+      });
     }
   }
 

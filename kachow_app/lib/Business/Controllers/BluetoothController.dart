@@ -62,6 +62,8 @@ class BluetoothController {
         await bluePlugin.connect(_dispositivoOBD!.address);
 
     String resposta = await _obdservice.testaComandoOBD(comando, newConnection);
+    await newConnection!.finish();
+    newConnection!.dispose();
     return resposta;
   }
 

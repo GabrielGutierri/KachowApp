@@ -30,21 +30,30 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
       return;
     }
 
-    bool existe = await _identificacaoCarroController.validarCarro(nome, placa);
-    if (existe) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => DependencyFactory.createBluetoothPage()),
-      );
-    } else {
-      _identificacaoCarroController.salvarCarro(nome, placa);
-      setState(() {});
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => DependencyFactory.createBluetoothPage()),
-      );
+    try {
+      bool existe =
+          await _identificacaoCarroController.validarCarro(nome, placa);
+      if (existe) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => DependencyFactory.createBluetoothPage()),
+        );
+      } else {
+        _identificacaoCarroController.salvarCarro(nome, placa);
+        setState(() {});
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => DependencyFactory.createBluetoothPage()),
+        );
+      }
+    } catch (ex) {
+      showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(title: Text('ERRO!'));
+          });
     }
   }
 
