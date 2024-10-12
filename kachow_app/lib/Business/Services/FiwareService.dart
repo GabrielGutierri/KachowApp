@@ -35,6 +35,9 @@ class Fiwareservice {
           "attributes": [
             {"object_id": "v", "name": "velocidade", "type": "float"},
             {"object_id": "r", "name": "rpm", "type": "float"},
+            {"object_id": "p", "name": "pressure", "type": "float"},
+            {"object_id": "t", "name": "temperature", "type": "float"},
+            {"object_id": "e", "name": "engineload", "type": "float"},
             {
               "object_id": "g",
               "name": "location",
@@ -71,6 +74,9 @@ class Fiwareservice {
           "attrs": [
             "velocidade",
             "rpm",
+            "pressure",
+            "temperature",
+            "engineload",
             "location",
             "acelerometro",
             "dataColetaDados"
@@ -82,6 +88,9 @@ class Fiwareservice {
         "attrs": [
           "velocidade",
           "rpm",
+          "pressure",
+          "temperature",
+          "engineload",
           "location",
           "acelerometro",
           "dataColetaDados"
@@ -105,6 +114,9 @@ class Fiwareservice {
       "type": "Carro",
       "velocidade": {"type": "float", "value": 0},
       "rpm": {"type": "float", "value": 0},
+      "pressure": {"type": "float", "value": 0},
+      "temperature": {"type": "float", "value": 0},
+      "engineload": {"type": "float", "value": 0},
       "location": {
         "type": "geo:json",
         "value": {

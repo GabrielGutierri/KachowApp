@@ -38,10 +38,6 @@ class _BluetoothPageState extends State<BluetoothPage> {
         });
         Navigator.of(context).pop(); // Fecha o modal após a conexão
       }
-      // setState(() {
-      //   bluetoothValido = true;
-      // });
-      Navigator.of(context).pop();
     } catch (e) {
       _exibirMensagemErro(
           context, 'Erro ao conectar ao dispositivo Bluetooth.');
