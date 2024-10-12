@@ -44,11 +44,12 @@ class Obdservice {
   }
 
   Future rotinaComandos(BluetoothConnection? connection) async {
-    //Velocidade, RPM, Intake manifold pressure, Data
     List<String> listaComandos = [
-      "01 0D\r",
-      "01 0C\r",
-      // "01 0B\r",
+      "01 0D\r", //Velocidade
+      "01 0C\r", //RPM
+      "01 0B\r", //Pressão do coletor de admissão
+      "01 0F\r", //Temperatura do ar de admissão
+      "01 04\r", //Engine Load
     ];
 
     try {

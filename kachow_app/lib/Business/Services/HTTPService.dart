@@ -13,6 +13,9 @@ class HttpService {
     Map<String, dynamic> body = {
       'velocidade': {'type': 'float', 'value': counter++},
       'rpm': {'type': 'float', 'value': counter++},
+      "pressure": {"type": "float", "value": counter++},
+      "temperature": {"type": "float", "value": counter++},
+      "engineload": {"type": "float", "value": counter++},
       'location': {
         'type': 'geo:json',
         'value': {
@@ -40,6 +43,9 @@ class HttpService {
     Map<String, dynamic> body = {
       "velocidade": {"type": "float", "value": 0},
       "rpm": {"type": "float", "value": 0},
+      "pressure": {"type": "float", "value": 0},
+      "temperature": {"type": "float", "value": 0},
+      "engineload": {"type": "float", "value": 0},
       "location": {
         "type": "geo:json",
         "value": {
@@ -56,6 +62,12 @@ class HttpService {
         body["velocidade"]["value"] = TrataMensagemVelocidade(message.trim());
       } else if (message.contains("41 0C")) {
         body["rpm"]["value"] = TrataMensagemRPM(message.trim());
+      } else if (message.contains("41 0B")) {
+        body["pressure"]["value"] = TrataMensagemIntakePressure(message.trim());
+      } else if (message.contains("41 0F")) {
+        body["temperature"]["value"] = TrataMensagemIntakeTemperature(message.trim());
+      } else if (message.contains("41 04")) {
+        body["engineload"]["value"] = TrataMensagemEngineLoad(message.trim());
       } else if (message.contains("GEO")) {
         // Remove "GEO" e separa a string com base no ";"
         List<String> coordenadas =
@@ -120,7 +132,7 @@ class HttpService {
     return rpm.toString();
   }
 
-  String TrataMensagemIntake(String mensagem) {
+  String TrataMensagemIntakePressure(String mensagem) {
     mensagem = mensagem.trim().replaceAll(RegExp(r'01 0B'), '');
     mensagem = mensagem.trim().replaceAll(RegExp(r'41 0B'), '');
     RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
@@ -129,6 +141,28 @@ class HttpService {
 
     int kpa = int.parse(intakes[0].trim(), radix: 16);
     return kpa.toString();
+  }
+
+  String TrataMensagemIntakeTemperature(String mensagem) {
+    mensagem = mensagem.trim().replaceAll(RegExp(r'01 0F'), '');
+    mensagem = mensagem.trim().replaceAll(RegExp(r'41 0F'), '');
+    RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
+    Iterable<Match> matches = regExp.allMatches(mensagem.trim());
+    List<String> intakes = matches.map((match) => match.group(0)!).toList();
+
+    int kpa = int.parse(intakes[0].trim(), radix: 16) - 40;
+    return kpa.toString();
+  }
+
+  String TrataMensagemEngineLoad(String mensagem) {
+    mensagem = mensagem.trim().replaceAll(RegExp(r'01 04'), '');
+    mensagem = mensagem.trim().replaceAll(RegExp(r'41 04'), '');
+    RegExp regExp = RegExp(r'\b[0-9A-F]{2}\b');
+    Iterable<Match> matches = regExp.allMatches(mensagem.trim());
+    List<String> loads = matches.map((match) => match.group(0)!).toList();
+
+    double engineLoad = int.parse(loads[0].trim(), radix: 16) * 100 / 255;
+    return engineLoad.toString();
   }
 
   bool isValidDateTimeFormat(String input) {
