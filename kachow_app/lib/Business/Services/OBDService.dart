@@ -67,6 +67,8 @@ class Obdservice {
   Future<void> EnviaComandos(listaComandos, connection) async {
     await Future.delayed(const Duration(seconds: 5));
 
+    String dataColetaDados = DateTime.now().toString();
+    HttpService.respostas.add(dataColetaDados);
     // Obtém coordenadas no formato [longitude, latitude]
     List<double> geolocalizacao =
         await _geolocationService.TrataMensagemGeolocalizacao();
