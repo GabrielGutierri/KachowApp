@@ -24,6 +24,7 @@ class HttpService {
         }
       },
       'acelerometro': {'type': 'float', 'value': 0.0},
+      'giroscopio': {'type': 'float', 'value': 0.0},
       'dataColetaDados': {'type': 'text', 'value': ''}
     };
     String urlUpdate =
@@ -54,6 +55,7 @@ class HttpService {
         }
       },
       "acelerometro": {"type": "float", "value": 0.0},
+      "giroscopio": {"type": "float", "value": 0.0},
       "dataColetaDados": {"type": "text", "value": ""}
     };
 
@@ -82,6 +84,9 @@ class HttpService {
       } else if (message.contains("ACE")) {
         body["acelerometro"]["value"] =
             double.parse(message.replaceAll("ACE", "").trim());
+      } else if (message.contains("GIR")) {
+        body["giroscopio"]["value"] =
+            double.parse(message.replaceAll("GIR", "").trim());
       } else if (isValidDateTimeFormat(message)) {
         body["dataColetaDados"]["value"] = message;
       }

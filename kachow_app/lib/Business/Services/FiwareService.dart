@@ -48,6 +48,7 @@ class Fiwareservice {
               }
             },
             {"object_id": "a", "name": "acelerometro", "type": "float"},
+            {"object_id": "g", "name": "giroscopio", "type": "float"},
             {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
           ]
         }
@@ -79,6 +80,7 @@ class Fiwareservice {
             "engineload",
             "location",
             "acelerometro",
+            "giroscopio",
             "dataColetaDados"
           ]
         }
@@ -93,6 +95,7 @@ class Fiwareservice {
           "engineload",
           "location",
           "acelerometro",
+          "giroscopio",
           "dataColetaDados"
         ],
         "attrsFormat":
@@ -125,6 +128,7 @@ class Fiwareservice {
         }
       },
       "acelerometro": {"type": "float", "value": "0"},
+      "giroscopio": {"type": "float", "value": "0"},
       "dataColetaDados": {"type": "Text", "value": "0"}
     };
 

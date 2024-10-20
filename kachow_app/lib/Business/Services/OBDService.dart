@@ -82,7 +82,7 @@ class Obdservice {
 
     // Giroscopio
     double giroscopio = await _geolocationService.calcularOrientacao();
-    // HttpService.respostas.add("ACE$aceleracao");
+    HttpService.respostas.add("GIR$giroscopio");
 
 
     for (var comando in listaComandos) {
