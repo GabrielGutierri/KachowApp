@@ -39,6 +39,7 @@ dependencies:
   bluetooth_classic: ^0.0.1
   sensors_plus: ^6.0.1
   geolocator: ^9.0.2
+  flutter_sensors: ^1.0.0
   http: ^1.2.2
   mqtt_client: ^10.5.1
   workmanager: ^0.5.2

@@ -80,6 +80,11 @@ class Obdservice {
     double aceleracao = await _geolocationService.calculaAceleracaoSensor();
     HttpService.respostas.add("ACE$aceleracao");
 
+    // Giroscopio
+    double giroscopio = await _geolocationService.calcularOrientacao();
+    // HttpService.respostas.add("ACE$aceleracao");
+
+
     for (var comando in listaComandos) {
       String resposta = await enviarComando(comando, connection);
       HttpService.respostas.add(
