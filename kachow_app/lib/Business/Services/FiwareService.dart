@@ -47,8 +47,12 @@ class Fiwareservice {
                 "coordinates": [0, 0] // Placeholder para coordenadas reais
               }
             },
-            {"object_id": "a", "name": "acelerometro", "type": "float"},
-            {"object_id": "g", "name": "giroscopio", "type": "float"},
+            {"object_id": "ax", "name": "acelerometroEixoX", "type": "float"},
+            {"object_id": "ay", "name": "acelerometroEixoY", "type": "float"},
+            {"object_id": "az", "name": "acelerometroEixoZ", "type": "float"},
+            {"object_id": "gr", "name": "giroscopioRow", "type": "float"},
+            {"object_id": "gp", "name": "giroscopioPitch", "type": "float"},
+            {"object_id": "gy", "name": "giroscopioYaw", "type": "float"},
             {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
           ]
         }
@@ -79,8 +83,12 @@ class Fiwareservice {
             "temperature",
             "engineload",
             "location",
-            "acelerometro",
-            "giroscopio",
+            "acelerometroEixoX",
+            "acelerometroEixoY",
+            "acelerometroEixoZ",
+            "giroscopioRow",
+            "giroscopioPitch",
+            "giroscopioYaw",
             "dataColetaDados"
           ]
         }
@@ -94,8 +102,12 @@ class Fiwareservice {
           "temperature",
           "engineload",
           "location",
-          "acelerometro",
-          "giroscopio",
+          "acelerometroEixoX",
+          "acelerometroEixoY",
+          "acelerometroEixoZ",
+          "giroscopioRow",
+          "giroscopioPitch",
+          "giroscopioYaw",
           "dataColetaDados"
         ],
         "attrsFormat":
@@ -127,8 +139,12 @@ class Fiwareservice {
           "coordinates": [0, 0] // Placeholder para coordenadas reais
         }
       },
-      "acelerometro": {"type": "float", "value": "0"},
-      "giroscopio": {"type": "float", "value": "0"},
+      'acelerometroEixoX': {'type': 'float', 'value': 0},
+      'acelerometroEixoY': {'type': 'float', 'value': 0},
+      'acelerometroEixoZ': {'type': 'float', 'value': 0},
+      'giroscopioRow': {'type': 'float', 'value': 0},
+      'giroscopioPitch': {'type': 'float', 'value': 0},
+      'giroscopioYaw': {'type': 'float', 'value': 0},
       "dataColetaDados": {"type": "Text", "value": "0"}
     };
 

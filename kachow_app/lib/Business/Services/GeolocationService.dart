@@ -54,27 +54,24 @@ class GeolocationService {
     }
   }
 
-  // Método para calcular a aceleração longitudinal e imprimir as outras acelerações
-  Future<double> calculaAceleracaoSensor() async {
+  // Método para calcular a aceleração nos eixos X, Y, Z e retornar os três valores
+  Future<List<double>> calculaAceleracaoSensor() async {
     try {
       // Imprimir os valores de aceleração nos eixos X, Y e Z
       print('Aceleração eixo X: $_aceleracaoX');
       print('Aceleração eixo Y (longitudinal): $_aceleracaoY');
       print('Aceleração eixo Z: $_aceleracaoZ');
 
-      // Apenas retornando a aceleração no eixo Y (longitudinal)
-      double aceleracaoLongitudinal = _aceleracaoY;
-
-      print('Aceleração longitudinal: $aceleracaoLongitudinal');
-      return aceleracaoLongitudinal; // Retorna apenas a aceleração longitudinal
+      // Retornar os três valores de aceleração
+      return [_aceleracaoX, _aceleracaoY, _aceleracaoZ];
     } catch (e) {
       print('Erro ao calcular a aceleração: $e');
-      return 0.0; // Valor padrão no caso de erro
+      return [0.0, 0.0, 0.0]; // Valor padrão no caso de erro
     }
   }
 
   // Método para obter o valor do giroscópio e devolver os ângulos de Roll, Pitch e Yaw
-  Future<double> calcularOrientacao() async {
+  Future<List<double>> calcularOrientacao() async {
     try {
       // Pitch: inclinação para frente/trás
       double pitch = atan2(_aceleracaoY, sqrt(_aceleracaoX * _aceleracaoX + _aceleracaoZ * _aceleracaoZ)) * (180 / pi);
@@ -90,10 +87,10 @@ class GeolocationService {
       print('Yaw calculado: $yaw');
 
       // Retornar os três ângulos
-      return roll;
+      return [roll, pitch, yaw];
     } catch (e) {
       print('Erro ao calcular os ângulos: $e');
-      return 0.0; // Valor padrão no caso de erro
+      return [0.0, 0.0, 0.0]; // Valor padrão no caso de erro
     }
   }
 

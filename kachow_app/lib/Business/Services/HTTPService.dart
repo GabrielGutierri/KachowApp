@@ -23,8 +23,13 @@ class HttpService {
           'coordinates': [0.0, 0.0] // Coordenadas padrão
         }
       },
-      'acelerometro': {'type': 'float', 'value': 0.0},
-      'giroscopio': {'type': 'float', 'value': 0.0},
+      'acelerometroEixoX': {'type': 'float', 'value': 0.0},
+      'acelerometroEixoY': {'type': 'float', 'value': 0.0},
+      'acelerometroEixoZ': {'type': 'float', 'value': 0.0},
+      'giroscopioRow': {'type': 'float', 'value': 0.0},
+      'giroscopioPitch': {'type': 'float', 'value': 0.0},
+      'giroscopioYaw': {'type': 'float', 'value': 0.0},
+
       'dataColetaDados': {'type': 'text', 'value': ''}
     };
     String urlUpdate =
@@ -54,8 +59,12 @@ class HttpService {
           "coordinates": [0.0, 0.0] // Coordenadas padrão
         }
       },
-      "acelerometro": {"type": "float", "value": 0.0},
-      "giroscopio": {"type": "float", "value": 0.0},
+      'acelerometroEixoX': {'type': 'float', 'value': 0.0},
+      'acelerometroEixoY': {'type': 'float', 'value': 0.0},
+      'acelerometroEixoZ': {'type': 'float', 'value': 0.0},
+      'giroscopioRow': {'type': 'float', 'value': 0.0},
+      'giroscopioPitch': {'type': 'float', 'value': 0.0},
+      'giroscopioYaw': {'type': 'float', 'value': 0.0},
       "dataColetaDados": {"type": "text", "value": ""}
     };
 
@@ -81,12 +90,24 @@ class HttpService {
 
         // Atualiza as coordenadas no body
         body["location"]["value"]["coordinates"] = [longitude, latitude];
-      } else if (message.contains("ACE")) {
-        body["acelerometro"]["value"] =
-            double.parse(message.replaceAll("ACE", "").trim());
-      } else if (message.contains("GIR")) {
-        body["giroscopio"]["value"] =
-            double.parse(message.replaceAll("GIR", "").trim());
+      } else if (message.contains("ACE_X")) {
+        body["acelerometroEixoX"]["value"] =
+            double.parse(message.replaceAll("ACE_X", "").trim());
+      }else if (message.contains("ACE_Y")) {
+        body["acelerometroEixoY"]["value"] =
+            double.parse(message.replaceAll("ACE_Y", "").trim());
+      }else if (message.contains("ACE_Z")) {
+        body["acelerometroEixoZ"]["value"] =
+            double.parse(message.replaceAll("ACE_Z", "").trim());
+      } else if (message.contains("GIR_R")) {
+        body["giroscopioRow"]["value"] =
+            double.parse(message.replaceAll("GIR_R", "").trim());
+      }else if (message.contains("GIR_P")) {
+        body["giroscopioPitch"]["value"] =
+            double.parse(message.replaceAll("GIR_P", "").trim());
+      }else if (message.contains("GIR_Y")) {
+        body["giroscopioYaw"]["value"] =
+            double.parse(message.replaceAll("GIR_Y", "").trim());
       } else if (isValidDateTimeFormat(message)) {
         body["dataColetaDados"]["value"] = message;
       }

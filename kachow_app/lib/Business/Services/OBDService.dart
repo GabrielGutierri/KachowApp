@@ -69,29 +69,37 @@ class Obdservice {
 
     String dataColetaDados = DateTime.now().toString();
     HttpService.respostas.add(dataColetaDados);
+
     // Obtém coordenadas no formato [longitude, latitude]
-    List<double> geolocalizacao =
-        await _geolocationService.TrataMensagemGeolocalizacao();
-    String geolocation =
-        "GEO${geolocalizacao[0]}" + ";" + "${geolocalizacao[1]}";
+    List<double> geolocalizacao = await _geolocationService.TrataMensagemGeolocalizacao();
+    String geolocation = "GEO${geolocalizacao[0]};${geolocalizacao[1]}";
     HttpService.respostas.add(geolocation);
 
-    // Obtém a aceleração usando o GPS
-    double aceleracao = await _geolocationService.calculaAceleracaoSensor();
-    HttpService.respostas.add("ACE$aceleracao");
+    // Obtém os valores de aceleração nos eixos X, Y e Z
+    List<double> aceleracoes = await _geolocationService.calculaAceleracaoSensor();
+    double aceleracaoX = aceleracoes[0];
+    double aceleracaoY = aceleracoes[1];
+    double aceleracaoZ = aceleracoes[2];
+    HttpService.respostas.add("ACE_X$aceleracaoX");
+    HttpService.respostas.add("ACE_Y$aceleracaoY");
+    HttpService.respostas.add("ACE_Z$aceleracaoZ");
 
-    // Giroscopio
-    double giroscopio = await _geolocationService.calcularOrientacao();
-    HttpService.respostas.add("GIR$giroscopio");
+    // Obtém os valores de Roll, Pitch e Yaw
+    List<double> orientacoes = await _geolocationService.calcularOrientacao();
+    double roll = orientacoes[0];
+    double pitch = orientacoes[1];
+    double yaw = orientacoes[2];
 
+    HttpService.respostas.add("GIR_R$roll");
+    HttpService.respostas.add("GIR_P$pitch");
+    HttpService.respostas.add("GIR_Y$yaw");
 
     for (var comando in listaComandos) {
       String resposta = await enviarComando(comando, connection);
-      HttpService.respostas.add(
-          resposta); //vale a pensa mudar para salvar na memoria, ao inves de uma fila?
+      HttpService.respostas.add(resposta);
     }
 
-    //todas as respostas estão no array
+    // Processa as respostas
     try {
       await Future.delayed(const Duration(seconds: 5));
       await _httpService.checkListAndPublish();
@@ -100,6 +108,7 @@ class Obdservice {
       HttpService.respostas.clear();
     }
   }
+
 
   Future<String> testaComandoOBD(
       String comando, BluetoothConnection? connection) async {
