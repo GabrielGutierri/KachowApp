@@ -1,13 +1,20 @@
 import 'dart:convert';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart';
+import 'package:kachow_app/Business/Utils/TrataMensagemOBD.dart';
 import 'package:kachow_app/Domain/TO/RetornoDispositivoFiwareTO.dart';
 import 'package:kachow_app/Domain/TO/RetornoErroFiwareTO.dart';
+import 'package:kachow_app/Domain/entities/DadoAcelerometro.dart';
+import 'package:kachow_app/Domain/entities/DadoFIWARE.dart';
+import 'package:kachow_app/Domain/entities/DadoGeolocation.dart';
+import 'package:kachow_app/Domain/entities/DadoOBD.dart';
 import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 class Fiwareservice {
   final String _ip = "46.17.108.131";
+
   Future<void> SalvarEntidadeVeiculo(IdentificacaoVeiculo veiculo) async {
     String deviceID = veiculo.placa;
     String deviceName = "urn:ngsi-ld:${veiculo.nome}:${veiculo.placa}";
@@ -38,6 +45,7 @@ class Fiwareservice {
             {"object_id": "p", "name": "pressure", "type": "float"},
             {"object_id": "t", "name": "temperature", "type": "float"},
             {"object_id": "e", "name": "engineload", "type": "float"},
+            {"object_id": "tp", "name": "throttlePosition", "type": "float"},
             {
               "object_id": "g",
               "name": "location",
@@ -89,7 +97,8 @@ class Fiwareservice {
             "giroscopioRow",
             "giroscopioPitch",
             "giroscopioYaw",
-            "dataColetaDados"
+            "dataColetaDados",
+            "throttlePosition"
           ]
         }
       },
@@ -108,7 +117,8 @@ class Fiwareservice {
           "giroscopioRow",
           "giroscopioPitch",
           "giroscopioYaw",
-          "dataColetaDados"
+          "dataColetaDados",
+          "throttlePosition"
         ],
         "attrsFormat":
             "legacy" // Formato dos atributos a ser notificado (legado)
@@ -132,6 +142,7 @@ class Fiwareservice {
       "pressure": {"type": "float", "value": 0},
       "temperature": {"type": "float", "value": 0},
       "engineload": {"type": "float", "value": 0},
+      "throttlePosition": {"type": "float", "value": 0},
       "location": {
         "type": "geo:json",
         "value": {
@@ -193,5 +204,133 @@ class Fiwareservice {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('deviceID', deviceID);
     await prefs.setString('deviceName', deviceName);
+  }
+
+  Future<void> preencheTabelaFIWARE() async {
+    try {
+      Box<DadoGeolocation> boxGeolocation =
+          await Hive.openBox('tbFilaGeolocation');
+      Box<DadoAcelerometro> boxAcelerometro =
+          await Hive.openBox('tbFilaAcelerometro');
+      Box<DadoOBD> boxOBD = await Hive.openBox('tbFilaOBD');
+
+      var dadosGeolocation = boxGeolocation.values;
+      var dadosAcelerometro = boxAcelerometro.values;
+      var dadosOBD = boxOBD.values;
+
+      List<DadoOBD> listaOBD = [];
+      List<DadoAcelerometro> listaAcelerometro = [];
+      List<DadoGeolocation> listaGeolocation = [];
+
+      for (var geolocation in dadosGeolocation) {
+        listaGeolocation.add(geolocation);
+        boxGeolocation.delete(geolocation.key);
+      }
+
+      for (var acelerometro in dadosAcelerometro) {
+        listaAcelerometro.add(acelerometro);
+        boxAcelerometro.delete(acelerometro.key);
+      }
+
+      for (var obd in dadosOBD) {
+        listaOBD.add(obd);
+        boxOBD.delete(obd.key);
+      }
+
+      int tamanho = listaAcelerometro.length;
+      List<DadoFiware> listaGeral = [];
+
+      int cicloGeo = 0;
+
+      //PRECISA MELHORAR ESSA PARTE, O OBD PODE NÃO TER O MESMO NUMERO QUE O
+      //ACELEROMETRO, MESMO OS DOIS RODANDO A CADA SEGUNDO
+      for (int i = 0; i < tamanho; i++) {
+        if (cicloGeo == listaGeolocation.length) {
+          cicloGeo = listaGeolocation.length - 1;
+        }
+        DadoAcelerometro valorAcelerometro = listaAcelerometro[i];
+        DadoGeolocation valorGeolocation = listaGeolocation[cicloGeo];
+        DadoOBD valorOBD = listaOBD[i];
+
+        if (i != 0) {
+          if (i % 8 == 0 && cicloGeo < listaGeolocation.length) {
+            cicloGeo += 1;
+          }
+        }
+
+        listaGeral.add(new DadoFiware(
+            dadoGeolocation: valorGeolocation,
+            dadoAcelerometro: valorAcelerometro,
+            dadoOBD: valorOBD));
+      }
+
+      await RotinaEnvioFIWARE(listaGeral);
+    } catch (ex) {
+      print(ex);
+    }
+  }
+
+  Future<void> RotinaEnvioFIWARE(List<DadoFiware> listaGeral) async {
+    for (var dado in listaGeral) {
+      Map<String, dynamic> body = {
+        "velocidade": {
+          "type": "float",
+          "value":
+              TrataMensagemOBD.TrataMensagemVelocidade(dado.dadoOBD.velocidade)
+          //"value": dado.obd.velocidade
+        },
+        "rpm": {
+          "type": "float",
+          "value": TrataMensagemOBD.TrataMensagemRPM(dado.dadoOBD.rpm)
+          //"value": dado.obd.rpm
+        },
+        "pressure": {
+          "type": "float",
+          "value": TrataMensagemOBD.TrataMensagemIntakePressure(
+              dado.dadoOBD.pressaoColetorAdmissao)
+          //"value": dado.obd.pressaoColetorAdmissao
+        },
+        "temperature": {
+          "type": "float",
+          "value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
+              dado.dadoOBD.tempArAdmissao)
+          //"value": dado.obd.tempArAdmissao
+        },
+        "engineload": {
+          "type": "float",
+          "value":
+              TrataMensagemOBD.TrataMensagemEngineLoad(dado.dadoOBD.engineLoad)
+          //"value": dado.obd.engineLoad
+        },
+        "location": {
+          "type": "geo:json",
+          "value": {
+            "type": "Point",
+            "coordinates": [
+              dado.dadoGeolocation.latitude,
+              dado.dadoGeolocation.longitude
+            ] // Coordenadas padrão
+          }
+        },
+        "acelerometro": {
+          "type": "float",
+          "value": dado.dadoAcelerometro.aceleracaoX
+        },
+        "dataColetaDados": {"type": "text", "value": ""}
+      };
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String deviceName = prefs.getString('deviceName') ?? "";
+      if (deviceName != "") {
+        String urlUpdate = 'http://$_ip:1026/v2/entities/$deviceName/attrs';
+        var url = Uri.parse(urlUpdate);
+
+        await http.post(url, body: json.encode(body), headers: {
+          "Content-Type": "application/json",
+          "fiware-service": "smart",
+          "fiware-servicepath": "/"
+        });
+      }
+    }
   }
 }

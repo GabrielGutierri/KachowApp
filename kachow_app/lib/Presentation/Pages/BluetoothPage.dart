@@ -13,6 +13,8 @@ class BluetoothPage extends StatefulWidget {
 
 class _BluetoothPageState extends State<BluetoothPage> {
   bool bluetoothValido = false;
+  bool comandosIniciados = false;
+
   final TextEditingController _comandoOBDController = TextEditingController();
 
   String _montaTextoDispositivo(Device dispositivo) {
@@ -27,7 +29,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
     try {
       bool conectado =
           await widget._bluetoothController.ConectarAoDispositivo(dispositivo);
-
+      //bool conectado = true;
       if (!conectado) {
         _exibirMensagemErro(
             context, 'Erro ao conectar ao dispositivo Bluetooth.');
@@ -35,6 +37,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
         // Quando a conexão for bem-sucedida, atualizar o estado da página
         setState(() {
           bluetoothValido = true;
+          comandosIniciados = false;
         });
         Navigator.of(context).pop(); // Fecha o modal após a conexão
       }
@@ -66,6 +69,18 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   Future<void> IniciarRotinaComandos() async {
     await widget._bluetoothController.rotinaComandos();
+    setState(() {
+      bluetoothValido = true;
+      comandosIniciados = true;
+    });
+  }
+
+  Future<void> PararRotinaComandos() async {
+    await widget._bluetoothController.pararComandos();
+    setState(() {
+      bluetoothValido = true;
+      comandosIniciados = false;
+    });
   }
 
   Future<void> _testarComandoOBD(BuildContext context) async {
@@ -183,12 +198,25 @@ class _BluetoothPageState extends State<BluetoothPage> {
                 },
                 child: const Text('Conectar'),
               )
-            else ...[
+            else if (bluetoothValido && !comandosIniciados) ...[
               ElevatedButton(
                 onPressed: () async {
                   await IniciarRotinaComandos();
                 },
                 child: const Text('Enviar comandos'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await TestarComando(context);
+                },
+                child: const Text('Testar um comando'),
+              )
+            ] else if (bluetoothValido && comandosIniciados) ...[
+              ElevatedButton(
+                onPressed: () async {
+                  await PararRotinaComandos();
+                },
+                child: const Text('Parar comandos'),
               ),
               ElevatedButton(
                 onPressed: () async {

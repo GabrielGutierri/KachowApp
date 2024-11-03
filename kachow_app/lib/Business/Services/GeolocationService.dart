@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hive/hive.dart';
+import 'package:kachow_app/Domain/entities/DadoAcelerometro.dart';
+import 'package:kachow_app/Domain/entities/DadoGeolocation.dart';
 
 class GeolocationService {
   double _aceleracaoX = 0.0;
@@ -15,6 +18,12 @@ class GeolocationService {
   StreamSubscription? _accelerometerSubscription;
   StreamSubscription? _gyroscopeSubscription;
 
+  final Box<DadoGeolocation> boxGeolocation =
+      Hive.box<DadoGeolocation>('tbFilaGeolocation');
+
+  final Box<DadoAcelerometro> boxAcelerometro =
+      Hive.box<DadoAcelerometro>('tbFilaAcelerometro');
+
   GeolocationService() {
     // Inicializar os sensores
     _initializeSensors();
@@ -22,7 +31,8 @@ class GeolocationService {
 
   // Método para inicializar e escutar os eventos do acelerômetro e giroscópio
   Future<void> _initializeSensors() async {
-    bool hasAccel = await SensorManager().isSensorAvailable(Sensors.ACCELEROMETER);
+    bool hasAccel =
+        await SensorManager().isSensorAvailable(Sensors.ACCELEROMETER);
     bool hasGyro = await SensorManager().isSensorAvailable(Sensors.GYROSCOPE);
 
     if (hasAccel) {
@@ -34,7 +44,8 @@ class GeolocationService {
       _accelerometerSubscription = accelerometerStream.listen((event) {
         final data = event.data;
         _aceleracaoX = data[0];
-        _aceleracaoY = data[1]; // Assumindo o eixo Y como aceleração longitudinal
+        _aceleracaoY =
+            data[1]; // Assumindo o eixo Y como aceleração longitudinal
         _aceleracaoZ = data[2];
       });
     }
@@ -74,10 +85,14 @@ class GeolocationService {
   Future<List<double>> calcularOrientacao() async {
     try {
       // Pitch: inclinação para frente/trás
-      double pitch = atan2(_aceleracaoY, sqrt(_aceleracaoX * _aceleracaoX + _aceleracaoZ * _aceleracaoZ)) * (180 / pi);
+      double pitch = atan2(_aceleracaoY,
+              sqrt(_aceleracaoX * _aceleracaoX + _aceleracaoZ * _aceleracaoZ)) *
+          (180 / pi);
 
       // Roll: inclinação para os lados
-      double roll = atan2(_aceleracaoX, sqrt(_aceleracaoY * _aceleracaoY + _aceleracaoZ * _aceleracaoZ)) * (180 / pi);
+      double roll = atan2(_aceleracaoX,
+              sqrt(_aceleracaoY * _aceleracaoY + _aceleracaoZ * _aceleracaoZ)) *
+          (180 / pi);
 
       // Yaw (rotação no plano horizontal), derivado do giroscópio
       double yaw = _giroscopioZ * (180 / pi); // Em graus por segundo
@@ -106,6 +121,18 @@ class GeolocationService {
     }
   }
 
+  Future<void> obterGeolocation() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    DadoGeolocation geolocation = DadoGeolocation(
+        dataColetaDados: DateTime.now(),
+        latitude: position.latitude,
+        longitude: position.longitude);
+
+    boxGeolocation.add(geolocation);
+  }
+
   // Método auxiliar para obter a localização
   Future<Position> _getGeoLocation() async {
     bool serviceEnabled;
@@ -128,12 +155,30 @@ class GeolocationService {
       throw Exception('Permissão de localização negada permanentemente.');
     }
 
-    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
 
-  // Método para cancelar as assinaturas dos sensores quando não forem mais necessários
-  void dispose() {
-    _accelerometerSubscription?.cancel();
-    _gyroscopeSubscription?.cancel();
+  //obter apenas a aceleracaoX, aceleracaoY e aceleracaoZ... realizar calculos depois no pós processamento
+  Future<void> obterAcelerometro() async {
+    //obter acelerometro e giroscopio?
+    DadoAcelerometro dadoAcelerometro = new DadoAcelerometro(
+        dataColetaDados: DateTime.now(),
+        aceleracaoX: _aceleracaoX,
+        aceleracaoY: _aceleracaoY,
+        aceleracaoZ: _aceleracaoZ);
+
+    boxAcelerometro.add(dadoAcelerometro);
+  }
+
+  // Método para obter o valor do giroscópio
+  Future<List<double>> obterGiroscopio() async {
+    try {
+      // Retornar os dados do giroscópio nos três eixos (X, Y, Z)
+      return [_giroscopioX, _giroscopioY, _giroscopioZ];
+    } catch (e) {
+      print('Erro ao obter o giroscópio: $e');
+      return [0.0, 0.0, 0.0]; // Valor padrão no caso de erro
+    }
   }
 }

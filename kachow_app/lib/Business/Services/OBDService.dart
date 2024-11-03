@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
-import 'package:kachow_app/Business/Services/GeolocationService.dart';
-import 'package:kachow_app/Business/Services/HTTPService.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:kachow_app/Domain/entities/DadoOBD.dart';
 
 class Obdservice {
   final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
+  final Box<DadoOBD> boxOBD = Hive.box<DadoOBD>('tbFilaOBD');
 
-  final HttpService _httpService;
-  final GeolocationService _geolocationService;
-
-  Obdservice(this._httpService, this._geolocationService);
+  Future iniciarServico(BluetoothConnection? connection) async {
+    await rotinaComandos(connection);
+  }
 
   Future iniciarEscuta(BluetoothConnection? connection) async {
     connection!.input!.listen((data) {
@@ -31,16 +31,7 @@ class Obdservice {
     respostaQueue.add(completer);
     connection!.output.add(bytes);
     await connection.output.allSent;
-
     return completer.future;
-  }
-
-  Future<void> testarHttp() async {
-    while (true) {
-      await _httpService.testarHTTP();
-      var duracao = const Duration(seconds: 5);
-      sleep(duracao);
-    }
   }
 
   Future rotinaComandos(BluetoothConnection? connection) async {
@@ -50,14 +41,13 @@ class Obdservice {
       "01 0B\r", //Pressão do coletor de admissão
       "01 0F\r", //Temperatura do ar de admissão
       "01 04\r", //Engine Load
+      "01 11\r" //Throttle Position
     ];
 
     try {
       if (connection != null) {
-        await iniciarEscuta(connection);
-        while (true) {
-          await EnviaComandos(listaComandos, connection);
-        }
+        //await iniciarEscuta(connection);
+        await EnviaComandos(listaComandos, connection);
       }
     } catch (e) {
       print(e);
@@ -65,50 +55,19 @@ class Obdservice {
   }
 
   Future<void> EnviaComandos(listaComandos, connection) async {
-    await Future.delayed(const Duration(seconds: 5));
-
-    String dataColetaDados = DateTime.now().toString();
-    HttpService.respostas.add(dataColetaDados);
-
-    // Obtém coordenadas no formato [longitude, latitude]
-    List<double> geolocalizacao = await _geolocationService.TrataMensagemGeolocalizacao();
-    String geolocation = "GEO${geolocalizacao[0]};${geolocalizacao[1]}";
-    HttpService.respostas.add(geolocation);
-
-    // Obtém os valores de aceleração nos eixos X, Y e Z
-    List<double> aceleracoes = await _geolocationService.calculaAceleracaoSensor();
-    double aceleracaoX = aceleracoes[0];
-    double aceleracaoY = aceleracoes[1];
-    double aceleracaoZ = aceleracoes[2];
-    HttpService.respostas.add("ACE_X$aceleracaoX");
-    HttpService.respostas.add("ACE_Y$aceleracaoY");
-    HttpService.respostas.add("ACE_Z$aceleracaoZ");
-
-    // Obtém os valores de Roll, Pitch e Yaw
-    List<double> orientacoes = await _geolocationService.calcularOrientacao();
-    double roll = orientacoes[0];
-    double pitch = orientacoes[1];
-    double yaw = orientacoes[2];
-
-    HttpService.respostas.add("GIR_R$roll");
-    HttpService.respostas.add("GIR_P$pitch");
-    HttpService.respostas.add("GIR_Y$yaw");
-
+    DadoOBD dadoOBD = DadoOBD();
+    dadoOBD.dataColetaDados = DateTime.now();
     for (var comando in listaComandos) {
       String resposta = await enviarComando(comando, connection);
-      HttpService.respostas.add(resposta);
+      if (comando == "01 0D\r") dadoOBD.velocidade = resposta;
+      if (comando == "01 0C\r") dadoOBD.rpm = resposta;
+      if (comando == "01 0B\r") dadoOBD.pressaoColetorAdmissao = resposta;
+      if (comando == "01 0F\r") dadoOBD.tempArAdmissao = resposta;
+      if (comando == "01 04\r") dadoOBD.engineLoad = resposta;
+      if (comando == "01 11\r") dadoOBD.throttlePosition = resposta;
     }
-
-    // Processa as respostas
-    try {
-      await Future.delayed(const Duration(seconds: 5));
-      await _httpService.checkListAndPublish();
-      HttpService.respostas.clear();
-    } catch (e) {
-      HttpService.respostas.clear();
-    }
+    boxOBD.add(dadoOBD);
   }
-
 
   Future<String> testaComandoOBD(
       String comando, BluetoothConnection? connection) async {
@@ -122,7 +81,8 @@ class Obdservice {
       String comando = "09 02\r";
       await iniciarEscuta(connection);
       String resposta = await enviarComando(comando, connection);
-
+      await connection!.finish();
+      connection.dispose();
       if (resposta.contains("49 02")) {
         return true;
       }
