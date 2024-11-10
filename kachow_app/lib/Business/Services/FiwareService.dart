@@ -4,10 +4,7 @@ import 'package:http/http.dart';
 import 'package:kachow_app/Business/Utils/TrataMensagemOBD.dart';
 import 'package:kachow_app/Domain/TO/RetornoDispositivoFiwareTO.dart';
 import 'package:kachow_app/Domain/TO/RetornoErroFiwareTO.dart';
-import 'package:kachow_app/Domain/entities/DadoAcelerometro.dart';
-import 'package:kachow_app/Domain/entities/DadoFIWARE.dart';
-import 'package:kachow_app/Domain/entities/DadoGeolocation.dart';
-import 'package:kachow_app/Domain/entities/DadoOBD.dart';
+import 'package:kachow_app/Domain/entities/DadoCarro.dart';
 import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -208,114 +205,66 @@ class Fiwareservice {
 
   Future<void> preencheTabelaFIWARE() async {
     try {
-      Box<DadoGeolocation> boxGeolocation =
-          await Hive.openBox('tbFilaGeolocation');
-      Box<DadoAcelerometro> boxAcelerometro =
-          await Hive.openBox('tbFilaAcelerometro');
-      Box<DadoOBD> boxOBD = await Hive.openBox('tbFilaOBD');
+      Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
 
-      var dadosGeolocation = boxGeolocation.values;
-      var dadosAcelerometro = boxAcelerometro.values;
-      var dadosOBD = boxOBD.values;
+      var dadosCarro = boxDados.values;
 
-      List<DadoOBD> listaOBD = [];
-      List<DadoAcelerometro> listaAcelerometro = [];
-      List<DadoGeolocation> listaGeolocation = [];
+      List<DadoCarro> listaCarro = [];
 
-      for (var geolocation in dadosGeolocation) {
-        listaGeolocation.add(geolocation);
-        boxGeolocation.delete(geolocation.key);
+      for (var dadoCarro in dadosCarro) {
+        listaCarro.add(dadoCarro);
+        boxDados.delete(dadoCarro.key);
       }
 
-      for (var acelerometro in dadosAcelerometro) {
-        listaAcelerometro.add(acelerometro);
-        boxAcelerometro.delete(acelerometro.key);
-      }
-
-      for (var obd in dadosOBD) {
-        listaOBD.add(obd);
-        boxOBD.delete(obd.key);
-      }
-
-      int tamanho = listaAcelerometro.length;
-      List<DadoFiware> listaGeral = [];
-
-      int cicloGeo = 0;
-
-      //PRECISA MELHORAR ESSA PARTE, O OBD PODE NÃO TER O MESMO NUMERO QUE O
-      //ACELEROMETRO, MESMO OS DOIS RODANDO A CADA SEGUNDO
-      for (int i = 0; i < tamanho; i++) {
-        if (cicloGeo == listaGeolocation.length) {
-          cicloGeo = listaGeolocation.length - 1;
-        }
-        DadoAcelerometro valorAcelerometro = listaAcelerometro[i];
-        DadoGeolocation valorGeolocation = listaGeolocation[cicloGeo];
-        DadoOBD valorOBD = listaOBD[i];
-
-        if (i != 0) {
-          if (i % 8 == 0 && cicloGeo < listaGeolocation.length) {
-            cicloGeo += 1;
-          }
-        }
-
-        listaGeral.add(new DadoFiware(
-            dadoGeolocation: valorGeolocation,
-            dadoAcelerometro: valorAcelerometro,
-            dadoOBD: valorOBD));
-      }
-
-      await RotinaEnvioFIWARE(listaGeral);
+      await RotinaEnvioFIWARE(listaCarro);
     } catch (ex) {
       print(ex);
     }
   }
 
-  Future<void> RotinaEnvioFIWARE(List<DadoFiware> listaGeral) async {
+  Future<void> RotinaEnvioFIWARE(List<DadoCarro> listaGeral) async {
     for (var dado in listaGeral) {
       Map<String, dynamic> body = {
         "velocidade": {
           "type": "float",
-          "value":
-              TrataMensagemOBD.TrataMensagemVelocidade(dado.dadoOBD.velocidade)
+          "value": TrataMensagemOBD.TrataMensagemVelocidade(dado.velocidade)
           //"value": dado.obd.velocidade
         },
         "rpm": {
           "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemRPM(dado.dadoOBD.rpm)
+          "value": TrataMensagemOBD.TrataMensagemRPM(dado.rpm)
           //"value": dado.obd.rpm
         },
         "pressure": {
           "type": "float",
           "value": TrataMensagemOBD.TrataMensagemIntakePressure(
-              dado.dadoOBD.pressaoColetorAdmissao)
+              dado.pressaoColetorAdmissao)
           //"value": dado.obd.pressaoColetorAdmissao
         },
         "temperature": {
           "type": "float",
           "value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
-              dado.dadoOBD.tempArAdmissao)
+              dado.tempArAdmissao)
           //"value": dado.obd.tempArAdmissao
         },
         "engineload": {
           "type": "float",
-          "value":
-              TrataMensagemOBD.TrataMensagemEngineLoad(dado.dadoOBD.engineLoad)
+          "value": TrataMensagemOBD.TrataMensagemEngineLoad(dado.engineLoad)
           //"value": dado.obd.engineLoad
+        },
+        "throttlePosition": {
+          "type": "float",
+          "value": TrataMensagemOBD.TrataMensagemThrottlePosition(
+              dado.throttlePosition)
         },
         "location": {
           "type": "geo:json",
           "value": {
             "type": "Point",
-            "coordinates": [
-              dado.dadoGeolocation.latitude,
-              dado.dadoGeolocation.longitude
-            ] // Coordenadas padrão
+            "coordinates": [dado.latitude, dado.longitude] // Coordenadas padrão
           }
         },
-        "acelerometro": {
-          "type": "float",
-          "value": dado.dadoAcelerometro.aceleracaoX
-        },
+        "acelerometro": {"type": "float", "value": dado.aceleracaoX},
         "dataColetaDados": {"type": "text", "value": ""}
       };
 

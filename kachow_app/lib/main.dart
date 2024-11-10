@@ -1,21 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:kachow_app/Domain/entities/DadoAcelerometro.dart';
-import 'package:kachow_app/Domain/entities/DadoGeolocation.dart';
-import 'package:kachow_app/Domain/entities/DadoOBD.dart';
+import 'package:kachow_app/Domain/entities/DadoCarro.dart';
 import 'package:kachow_app/IoC/DependencyFactory.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   await Hive.initFlutter();
-  Hive.registerAdapter(DadoOBDAdapter());
-  Hive.registerAdapter(DadoGeolocationAdapter());
-  Hive.registerAdapter(DadoAcelerometroAdapter());
+  Hive.registerAdapter(DadoCarroAdapter());
 
-  await Hive.openBox<DadoOBD>('tbFilaOBD');
-  await Hive.openBox<DadoGeolocation>('tbFilaGeolocation');
-  await Hive.openBox<DadoAcelerometro>('tbFilaAcelerometro');
+  await Hive.openBox<DadoCarro>('tbFilaDados');
 
   runApp(const MyApp());
   await checkPermissions();

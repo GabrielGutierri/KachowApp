@@ -1,9 +1,9 @@
 import 'package:hive/hive.dart';
 
-part 'DadoOBD.g.dart';
+part 'DadoCarro.g.dart';
 
 @HiveType(typeId: 0)
-class DadoOBD extends HiveObject {
+class DadoCarro extends HiveObject {
   @HiveField(0)
   late DateTime dataColetaDados;
   @HiveField(1)
@@ -18,4 +18,14 @@ class DadoOBD extends HiveObject {
   late String engineLoad;
   @HiveField(6)
   late String throttlePosition;
+  @HiveField(7)
+  late double aceleracaoX;
+  @HiveField(8)
+  late double aceleracaoY;
+  @HiveField(9)
+  late double aceleracaoZ;
+  @HiveField(10)
+  late double latitude;
+  @HiveField(11)
+  late double longitude;
 }

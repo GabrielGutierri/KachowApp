@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:kachow_app/Domain/entities/DadoOBD.dart';
+import 'package:kachow_app/Business/Services/GeolocationService.dart';
+import 'package:kachow_app/Domain/entities/Acelerometro.dart';
+import 'package:kachow_app/Domain/entities/DadoCarro.dart';
 
 class Obdservice {
   final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
-  final Box<DadoOBD> boxOBD = Hive.box<DadoOBD>('tbFilaOBD');
+  final Box<DadoCarro> boxDados = Hive.box<DadoCarro>('tbFilaDados');
+  late GeolocationService? geolocationService;
 
   Future iniciarServico(BluetoothConnection? connection) async {
     await rotinaComandos(connection);
@@ -55,18 +58,26 @@ class Obdservice {
   }
 
   Future<void> EnviaComandos(listaComandos, connection) async {
-    DadoOBD dadoOBD = DadoOBD();
-    dadoOBD.dataColetaDados = DateTime.now();
+    DadoCarro dadoCarro = DadoCarro();
+    dadoCarro.dataColetaDados = DateTime.now();
     for (var comando in listaComandos) {
       String resposta = await enviarComando(comando, connection);
-      if (comando == "01 0D\r") dadoOBD.velocidade = resposta;
-      if (comando == "01 0C\r") dadoOBD.rpm = resposta;
-      if (comando == "01 0B\r") dadoOBD.pressaoColetorAdmissao = resposta;
-      if (comando == "01 0F\r") dadoOBD.tempArAdmissao = resposta;
-      if (comando == "01 04\r") dadoOBD.engineLoad = resposta;
-      if (comando == "01 11\r") dadoOBD.throttlePosition = resposta;
+      if (comando == "01 0D\r") dadoCarro.velocidade = resposta;
+      if (comando == "01 0C\r") dadoCarro.rpm = resposta;
+      if (comando == "01 0B\r") dadoCarro.pressaoColetorAdmissao = resposta;
+      if (comando == "01 0F\r") dadoCarro.tempArAdmissao = resposta;
+      if (comando == "01 04\r") dadoCarro.engineLoad = resposta;
+      if (comando == "01 11\r") dadoCarro.throttlePosition = resposta;
     }
-    boxOBD.add(dadoOBD);
+    Position geolocation = await geolocationService!.obterGeolocation();
+    Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
+
+    dadoCarro.latitude = geolocation.latitude;
+    dadoCarro.longitude = geolocation.longitude;
+    dadoCarro.aceleracaoX = acelerometro.aceleracaoX;
+    dadoCarro.aceleracaoY = acelerometro.aceleracaoY;
+    dadoCarro.aceleracaoZ = acelerometro.aceleracaoZ;
+    boxDados.add(dadoCarro);
   }
 
   Future<String> testaComandoOBD(
@@ -90,5 +101,9 @@ class Obdservice {
     } catch (e) {
       return false;
     }
+  }
+
+  instanciarServices() {
+    geolocationService = GeolocationService();
   }
 }

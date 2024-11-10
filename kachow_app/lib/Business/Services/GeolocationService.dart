@@ -3,8 +3,7 @@ import 'dart:math';
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
-import 'package:kachow_app/Domain/entities/DadoAcelerometro.dart';
-import 'package:kachow_app/Domain/entities/DadoGeolocation.dart';
+import 'package:kachow_app/Domain/entities/Acelerometro.dart';
 
 class GeolocationService {
   double _aceleracaoX = 0.0;
@@ -17,12 +16,6 @@ class GeolocationService {
 
   StreamSubscription? _accelerometerSubscription;
   StreamSubscription? _gyroscopeSubscription;
-
-  final Box<DadoGeolocation> boxGeolocation =
-      Hive.box<DadoGeolocation>('tbFilaGeolocation');
-
-  final Box<DadoAcelerometro> boxAcelerometro =
-      Hive.box<DadoAcelerometro>('tbFilaAcelerometro');
 
   GeolocationService() {
     // Inicializar os sensores
@@ -121,16 +114,10 @@ class GeolocationService {
     }
   }
 
-  Future<void> obterGeolocation() async {
+  Future<Position> obterGeolocation() async {
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
-
-    DadoGeolocation geolocation = DadoGeolocation(
-        dataColetaDados: DateTime.now(),
-        latitude: position.latitude,
-        longitude: position.longitude);
-
-    boxGeolocation.add(geolocation);
+    return position;
   }
 
   // Método auxiliar para obter a localização
@@ -160,15 +147,13 @@ class GeolocationService {
   }
 
   //obter apenas a aceleracaoX, aceleracaoY e aceleracaoZ... realizar calculos depois no pós processamento
-  Future<void> obterAcelerometro() async {
+  Future<Acelerometro> obterAcelerometro() async {
     //obter acelerometro e giroscopio?
-    DadoAcelerometro dadoAcelerometro = new DadoAcelerometro(
-        dataColetaDados: DateTime.now(),
+    Acelerometro dadoAcelerometro = Acelerometro(
         aceleracaoX: _aceleracaoX,
         aceleracaoY: _aceleracaoY,
         aceleracaoZ: _aceleracaoZ);
-
-    boxAcelerometro.add(dadoAcelerometro);
+    return dadoAcelerometro;
   }
 
   // Método para obter o valor do giroscópio
