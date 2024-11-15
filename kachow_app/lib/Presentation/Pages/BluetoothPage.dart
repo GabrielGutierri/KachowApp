@@ -27,9 +27,9 @@ class _BluetoothPageState extends State<BluetoothPage> {
   Future<void> _rotinaConexaoBluetooth(
       Device dispositivo, BuildContext context) async {
     try {
-      //bool conectado =
-      //    await widget._bluetoothController.ConectarAoDispositivo(dispositivo);
-      bool conectado = true;
+      bool conectado =
+          await widget._bluetoothController.ConectarAoDispositivo(dispositivo);
+      //bool conectado = true;
       if (!conectado) {
         _exibirMensagemErro(
             context, 'Erro ao conectar ao dispositivo Bluetooth.');

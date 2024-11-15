@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive/hive.dart';
 import 'package:kachow_app/Business/Services/FiwareService.dart';
 import 'package:kachow_app/Business/Utils/TrataMensagemOBD.dart';
 import 'package:kachow_app/Business/Utils/TrataMensagemSensores.dart';
 import 'package:kachow_app/Domain/entities/DadoCarro.dart';
+import 'package:kachow_app/Domain/entities/DadoException.dart';
 import 'package:kachow_app/Domain/entities/DadoRequisicao.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -24,36 +24,36 @@ class RequestFIWAREService {
       Map<String, dynamic> body = {
         "velocidade": {
           "type": "float",
-          //"value": TrataMensagemOBD.TrataMensagemVelocidade(dado.velocidade)
-          "value": dado.velocidade
+          "value": TrataMensagemOBD.TrataMensagemVelocidade(dado.velocidade)
+          //"value": dado.velocidade
         },
         "rpm": {
           "type": "float",
-          //"value": TrataMensagemOBD.TrataMensagemRPM(dado.rpm)
-          "value": dado.rpm
+          "value": TrataMensagemOBD.TrataMensagemRPM(dado.rpm)
+          //"value": dado.rpm
         },
         "pressure": {
           "type": "float",
-          //"value": TrataMensagemOBD.TrataMensagemIntakePressure(
-          //    dado.pressaoColetorAdmissao)
-          "value": dado.pressaoColetorAdmissao
+          "value": TrataMensagemOBD.TrataMensagemIntakePressure(
+              dado.pressaoColetorAdmissao)
+          //"value": dado.pressaoColetorAdmissao
         },
         "temperature": {
           "type": "float",
-          //"value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
-          //    dado.tempArAdmissao)
-          "value": dado.tempArAdmissao
+          "value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
+              dado.tempArAdmissao)
+          //"value": dado.tempArAdmissao
         },
         "engineload": {
           "type": "float",
-          //"value": TrataMensagemOBD.TrataMensagemEngineLoad(dado.engineLoad)
-          "value": dado.engineLoad
+          "value": TrataMensagemOBD.TrataMensagemEngineLoad(dado.engineLoad)
+          //"value": dado.engineLoad
         },
         "throttlePosition": {
           "type": "float",
-          //"value": TrataMensagemOBD.TrataMensagemThrottlePosition(
-          //    dado.throttlePosition)
-          "value": dado.throttlePosition
+          "value": TrataMensagemOBD.TrataMensagemThrottlePosition(
+              dado.throttlePosition)
+          //"value": dado.throttlePosition
         },
         "location": {
           "type": "geo:json",
@@ -103,17 +103,16 @@ class RequestFIWAREService {
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
         dadoCarro.status = 2;
         await boxRequisicao.put(dadoCarro.key, dadoCarro);
-
-        // if (deviceName != "") {
-        //   String ip = Fiwareservice.ip;
-        //   String urlUpdate = 'http://$ip:1026/v2/entities/$deviceName/attrs';
-        //   var url = Uri.parse(urlUpdate);
-        //   await http.post(url, body: dadoCarro.requisicao, headers: {
-        //     "Content-Type": "application/json",
-        //     "fiware-service": "smart",
-        //     "fiware-servicepath": "/"
-        //   });
-        // }
+        if (deviceName != "") {
+          String ip = Fiwareservice.ip;
+          String urlUpdate = 'http://$ip:1026/v2/entities/$deviceName/attrs';
+          var url = Uri.parse(urlUpdate);
+          await http.post(url, body: dadoCarro.requisicao, headers: {
+            "Content-Type": "application/json",
+            "fiware-service": "smart",
+            "fiware-servicepath": "/"
+          });
+        }
       } else {
         return;
       }
@@ -134,7 +133,8 @@ class RequestFIWAREService {
         await rotinaRequestFIWARE();
         await LimpaTabelaOBD();
         await LimpaTabelaRequisicao();
-        break; //se chegar aqui, não deu nenhum erro com internet
+        await SubirExceptions();
+        return; //se chegar aqui, não deu nenhum erro com internet
       } catch (e) {
         recallInternetStatus += 1;
       }
@@ -154,6 +154,39 @@ class RequestFIWAREService {
     var dadosRequisicao = boxRequisicao.values;
     for (var requisicao in dadosRequisicao) {
       await boxRequisicao.delete(requisicao.key);
+    }
+  }
+
+  Future<void> SubirExceptions() async {
+    Box<DadoException> boxDados = await Hive.openBox('tbException');
+    var dadosException = boxDados.values;
+
+    for (var exception in dadosException) {
+      //ver se tem internet aqui, se nao tiver, sair do método
+      final result = await InternetAddress.lookup('google.com');
+      //se nao tiver net, ele retorna uma exceção
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        Map<String, dynamic> body = {
+          "mensagem": {"type": "Text", "value": exception.mensagem},
+          "stackTrace": {"type": "Text", "value": exception.stackTrace},
+          "data": {"type": "Text", "value": exception.data}
+        };
+        if (deviceName != "") {
+          String deviceException = deviceName + "Exception";
+          String ip = Fiwareservice.ip;
+          String urlUpdate =
+              'http://$ip:1026/v2/entities/$deviceException/attrs';
+          var url = Uri.parse(urlUpdate);
+          await http.post(url, body: jsonEncode(body), headers: {
+            "Content-Type": "application/json",
+            "fiware-service": "smart",
+            "fiware-servicepath": "/"
+          });
+          await boxDados.delete(exception.key);
+        }
+      } else {
+        return;
+      }
     }
   }
 }

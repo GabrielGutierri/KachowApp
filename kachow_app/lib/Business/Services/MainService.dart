@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:hive/hive.dart';
-import 'package:kachow_app/Business/Services/FiwareService.dart';
-import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
 import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
@@ -20,10 +18,10 @@ class MainService {
   MainService({required this.connection});
 
   Future<void> startAllServices() async {
-    // await geoService
-    //     .obterGeolocation(); //vou adicionar uma geolocalizacao, pois o serviço só vai pegar daqui 8sec
-    //await obdService.iniciarEscuta(connection);
+    await obdService.iniciarEscuta(connection);
     await obdService.instanciarServices();
+    await requestFiware.setDeviceName();
+
     obdSubscription = Stream.periodic(Duration(seconds: 1))
         .asyncMap((_) => coletarDadosOBD())
         .listen((_) {});
@@ -40,9 +38,9 @@ class MainService {
 
   Future<void> coletarDadosOBD() async {
     try {
-      //if (connection != null) {
-      await obdService.iniciarServico(connection);
-      //}
+      if (connection != null) {
+        await obdService.iniciarServico(connection);
+      }
     } catch (e, stackTrace) {
       var boxException = await Hive.openBox<DadoException>('tbException');
       boxException.add(new DadoException(
@@ -82,8 +80,8 @@ class MainService {
       tratativaDadosSubscription?.cancel();
       requestFiwareSubscription?.cancel();
       //cancelar a conexao com o Bluetooth;
-      //await connection!.finish();
-      //connection!.dispose();
+      await connection!.finish();
+      connection!.dispose();
 
       await requestFiware.RotinaLimpeza();
     } catch (ex) {

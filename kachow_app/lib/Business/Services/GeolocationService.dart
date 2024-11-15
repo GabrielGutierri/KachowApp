@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:hive/hive.dart';
 import 'package:kachow_app/Domain/entities/Acelerometro.dart';
 import 'package:kachow_app/Domain/entities/Giroscopio.dart';
 

@@ -4,8 +4,6 @@ import 'package:kachow_app/Domain/TO/RetornoDispositivoFiwareTO.dart';
 import 'package:kachow_app/Domain/TO/RetornoErroFiwareTO.dart';
 import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share/share.dart';
 import 'package:http/http.dart' as http;
 
 class Fiwareservice {
@@ -156,6 +154,50 @@ class Fiwareservice {
     };
 
     await http.post(urlOrion, body: json.encode(body), headers: {
+      "Content-Type": "application/json",
+      "fiware-service": "smart",
+      "fiware-servicepath": "/"
+    });
+  }
+
+  Future<void> CriarEntidadeException(String deviceName) async {
+    var urlOrion = Uri.parse("http://$ip:1026/v2/entities");
+    Map<String, dynamic> body = {
+      "id": deviceName + "Exception",
+      "type": "Exception",
+      "mensagem": {"type": "Text", "value": ""},
+      "stackTrace": {"type": "Text", "value": ""},
+      "data": {"type": "Text", "value": ""}
+    };
+
+    await http.post(urlOrion, body: json.encode(body), headers: {
+      "Content-Type": "application/json",
+      "fiware-service": "smart",
+      "fiware-servicepath": "/"
+    });
+  }
+
+  Future<void> AdicionarSubscriptionException(String deviceName) async {
+    var urlSubscription = Uri.parse("http://$ip:1026/v2/subscriptions/");
+    var body = {
+      "description": "$deviceName Exceptions", // Descrição da notificação
+      "subject": {
+        "entities": [
+          {"id": deviceName + "Exception", "type": "Exception"}
+        ],
+        "conditions": {
+          "attrs": ["mensagem"]
+        }
+      },
+      "notification": {
+        "http": {"url": "http://$ip:8666/notify"},
+        "attrs": ["mensagem"],
+        "attrsFormat":
+            "legacy" // Formato dos atributos a ser notificado (legado)
+      }
+    };
+
+    await http.post(urlSubscription, body: json.encode(body), headers: {
       "Content-Type": "application/json",
       "fiware-service": "smart",
       "fiware-servicepath": "/"

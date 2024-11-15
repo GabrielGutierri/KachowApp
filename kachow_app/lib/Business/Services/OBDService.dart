@@ -61,15 +61,15 @@ class Obdservice {
   Future<void> EnviaComandos(listaComandos, connection) async {
     DadoCarro dadoCarro = DadoCarro();
     dadoCarro.dataColetaDados = DateTime.now();
-    // for (var comando in listaComandos) {
-    //   String resposta = await enviarComando(comando, connection);
-    //   if (comando == "01 0D\r") dadoCarro.velocidade = resposta;
-    //   if (comando == "01 0C\r") dadoCarro.rpm = resposta;
-    //   if (comando == "01 0B\r") dadoCarro.pressaoColetorAdmissao = resposta;
-    //   if (comando == "01 0F\r") dadoCarro.tempArAdmissao = resposta;
-    //   if (comando == "01 04\r") dadoCarro.engineLoad = resposta;
-    //   if (comando == "01 11\r") dadoCarro.throttlePosition = resposta;
-    // }
+    for (var comando in listaComandos) {
+      String resposta = await enviarComando(comando, connection);
+      if (comando == "01 0D\r") dadoCarro.velocidade = resposta;
+      if (comando == "01 0C\r") dadoCarro.rpm = resposta;
+      if (comando == "01 0B\r") dadoCarro.pressaoColetorAdmissao = resposta;
+      if (comando == "01 0F\r") dadoCarro.tempArAdmissao = resposta;
+      if (comando == "01 04\r") dadoCarro.engineLoad = resposta;
+      if (comando == "01 11\r") dadoCarro.throttlePosition = resposta;
+    }
     Position geolocation = await geolocationService!.obterGeolocation();
     Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
     Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
@@ -81,14 +81,6 @@ class Obdservice {
     dadoCarro.giroscopioX = giroscopio.giroscopioX;
     dadoCarro.giroscopioY = giroscopio.giroscopioY;
     dadoCarro.giroscopioZ = giroscopio.giroscopioZ;
-    if (connection == null) {
-      dadoCarro.velocidade = "1";
-      dadoCarro.rpm = "2";
-      dadoCarro.pressaoColetorAdmissao = "3";
-      dadoCarro.tempArAdmissao = "4";
-      dadoCarro.engineLoad = "5";
-      dadoCarro.throttlePosition = "6";
-    }
     boxDados.add(dadoCarro);
   }
 
