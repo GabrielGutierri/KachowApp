@@ -47,6 +47,7 @@ dependencies:
   flutter_blue_classic: ^0.0.3
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  share: ^2.0.4
 
 dev_dependencies:
   flutter_test:

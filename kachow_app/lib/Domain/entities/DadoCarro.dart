@@ -28,4 +28,10 @@ class DadoCarro extends HiveObject {
   late double latitude;
   @HiveField(11)
   late double longitude;
+  @HiveField(12)
+  late double giroscopioX;
+  @HiveField(13)
+  late double giroscopioY;
+  @HiveField(14)
+  late double giroscopioZ;
 }

@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart';
 import 'package:kachow_app/Business/Utils/TrataMensagemOBD.dart';
+import 'package:kachow_app/Business/Utils/TrataMensagemSensores.dart';
 import 'package:kachow_app/Domain/TO/RetornoDispositivoFiwareTO.dart';
 import 'package:kachow_app/Domain/TO/RetornoErroFiwareTO.dart';
 import 'package:kachow_app/Domain/entities/DadoCarro.dart';
+import 'package:kachow_app/Domain/entities/DadoException.dart';
 import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share/share.dart';
 import 'package:http/http.dart' as http;
 
 class Fiwareservice {
@@ -87,6 +92,7 @@ class Fiwareservice {
             "pressure",
             "temperature",
             "engineload",
+            "throttlePosition",
             "location",
             "acelerometroEixoX",
             "acelerometroEixoY",
@@ -94,8 +100,7 @@ class Fiwareservice {
             "giroscopioRow",
             "giroscopioPitch",
             "giroscopioYaw",
-            "dataColetaDados",
-            "throttlePosition"
+            "dataColetaDados"
           ]
         }
       },
@@ -108,6 +113,7 @@ class Fiwareservice {
           "temperature",
           "engineload",
           "location",
+          "throttlePosition",
           "acelerometroEixoX",
           "acelerometroEixoY",
           "acelerometroEixoZ",
@@ -115,7 +121,6 @@ class Fiwareservice {
           "giroscopioPitch",
           "giroscopioYaw",
           "dataColetaDados",
-          "throttlePosition"
         ],
         "attrsFormat":
             "legacy" // Formato dos atributos a ser notificado (legado)
@@ -204,81 +209,155 @@ class Fiwareservice {
   }
 
   Future<void> preencheTabelaFIWARE() async {
-    try {
-      Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
+    Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
 
-      var dadosCarro = boxDados.values;
+    var dadosCarro = boxDados.values;
 
-      List<DadoCarro> listaCarro = [];
+    List<DadoCarro> listaCarro = [];
 
-      for (var dadoCarro in dadosCarro) {
-        listaCarro.add(dadoCarro);
-        boxDados.delete(dadoCarro.key);
-      }
-
-      await RotinaEnvioFIWARE(listaCarro);
-    } catch (ex) {
-      print(ex);
+    for (var dadoCarro in dadosCarro) {
+      listaCarro.add(dadoCarro);
+      boxDados.delete(dadoCarro.key);
     }
+
+    await RotinaEnvioFIWARE(listaCarro);
   }
 
   Future<void> RotinaEnvioFIWARE(List<DadoCarro> listaGeral) async {
-    for (var dado in listaGeral) {
-      Map<String, dynamic> body = {
-        "velocidade": {
-          "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemVelocidade(dado.velocidade)
-          //"value": dado.obd.velocidade
-        },
-        "rpm": {
-          "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemRPM(dado.rpm)
-          //"value": dado.obd.rpm
-        },
-        "pressure": {
-          "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemIntakePressure(
-              dado.pressaoColetorAdmissao)
-          //"value": dado.obd.pressaoColetorAdmissao
-        },
-        "temperature": {
-          "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
-              dado.tempArAdmissao)
-          //"value": dado.obd.tempArAdmissao
-        },
-        "engineload": {
-          "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemEngineLoad(dado.engineLoad)
-          //"value": dado.obd.engineLoad
-        },
-        "throttlePosition": {
-          "type": "float",
-          "value": TrataMensagemOBD.TrataMensagemThrottlePosition(
-              dado.throttlePosition)
-        },
-        "location": {
-          "type": "geo:json",
-          "value": {
-            "type": "Point",
-            "coordinates": [dado.latitude, dado.longitude] // Coordenadas padrão
+    try {
+      String conteudo = "";
+      for (var dado in listaGeral) {
+        Map<String, dynamic> body = {
+          "velocidade": {
+            "type": "float",
+            "value": TrataMensagemOBD.TrataMensagemVelocidade(dado.velocidade)
+            //"value": dado.obd.velocidade
+          },
+          "rpm": {
+            "type": "float",
+            "value": TrataMensagemOBD.TrataMensagemRPM(dado.rpm)
+            //"value": dado.obd.rpm
+          },
+          "pressure": {
+            "type": "float",
+            "value": TrataMensagemOBD.TrataMensagemIntakePressure(
+                dado.pressaoColetorAdmissao)
+            //"value": dado.obd.pressaoColetorAdmissao
+          },
+          "temperature": {
+            "type": "float",
+            "value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
+                dado.tempArAdmissao)
+            //"value": dado.obd.tempArAdmissao
+          },
+          "engineload": {
+            "type": "float",
+            "value": TrataMensagemOBD.TrataMensagemEngineLoad(dado.engineLoad)
+            //"value": dado.obd.engineLoad
+          },
+          "throttlePosition": {
+            "type": "float",
+            "value": TrataMensagemOBD.TrataMensagemThrottlePosition(
+                dado.throttlePosition)
+          },
+          "location": {
+            "type": "geo:json",
+            "value": {
+              "type": "Point",
+              "coordinates": [
+                dado.latitude,
+                dado.longitude
+              ] // Coordenadas padrão
+            }
+          },
+          'acelerometroEixoX': {'type': 'float', 'value': dado.aceleracaoX},
+          'acelerometroEixoY': {'type': 'float', 'value': dado.aceleracaoY},
+          'acelerometroEixoZ': {'type': 'float', 'value': dado.aceleracaoZ},
+          'giroscopioRow': {
+            'type': 'float',
+            'value': TrataMensagemSensores.CalculaGiroscopioRow(
+                dado.aceleracaoX, dado.aceleracaoY, dado.aceleracaoZ)
+          },
+          'giroscopioPitch': {
+            'type': 'float',
+            'value': TrataMensagemSensores.CalculaGiroscopioPitch(
+                dado.aceleracaoY, dado.aceleracaoX, dado.aceleracaoZ)
+          },
+          'giroscopioYaw': {
+            'type': 'float',
+            'value':
+                TrataMensagemSensores.CalculaGiroscopioYaw(dado.giroscopioZ)
+          },
+          "dataColetaDados": {
+            "type": "Text",
+            "value": dado.dataColetaDados.toString()
           }
-        },
-        "acelerometro": {"type": "float", "value": dado.aceleracaoX},
-        "dataColetaDados": {"type": "text", "value": ""}
-      };
+        };
+        conteudo += jsonEncode(body) + "\n";
+        //ao invés de jogar no fiware, por ora vou salvar num txt
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String deviceName = prefs.getString('deviceName') ?? "";
-      if (deviceName != "") {
-        String urlUpdate = 'http://$_ip:1026/v2/entities/$deviceName/attrs';
-        var url = Uri.parse(urlUpdate);
+        // SharedPreferences prefs = await SharedPreferences.getInstance();
+        // String deviceName = prefs.getString('deviceName') ?? "";
+        // if (deviceName != "") {
+        //   String urlUpdate = 'http://$_ip:1026/v2/entities/$deviceName/attrs';
+        //   var url = Uri.parse(urlUpdate);
 
-        await http.post(url, body: json.encode(body), headers: {
-          "Content-Type": "application/json",
-          "fiware-service": "smart",
-          "fiware-servicepath": "/"
-        });
+        //   await http.post(url, body: json.encode(body), headers: {
+        //     "Content-Type": "application/json",
+        //     "fiware-service": "smart",
+        //     "fiware-servicepath": "/"
+        //   });
+        //}
+      }
+      conteudo += "\n--------------------- INFOS ---------------------\n";
+      int tamanhoListaGeral = listaGeral.length;
+      DateTime inicioColeta = listaGeral[0].dataColetaDados;
+      DateTime fimColeta = listaGeral[tamanhoListaGeral - 1].dataColetaDados;
+      conteudo +=
+          "Tamanho listaGeral: $tamanhoListaGeral\n Inicio coleta: $inicioColeta \n Fim coleta: $fimColeta";
+
+      Box<DadoException> boxException = await Hive.openBox('tbException');
+      var dadosException = boxException.values;
+      conteudo += "\n--------------------- EXCEPTIONS ---------------------\n";
+      for (var ex in dadosException) {
+        String message = ex.mensagem;
+        String stackTrace = ex.stackTrace;
+        DateTime data = ex.data;
+        conteudo +=
+            "DataException: $data - Mensagem: $message - Stack: $stackTrace \n";
+        boxException.delete(ex.key);
+      }
+
+      var dataAtual = DateTime.now();
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/dadosCorrida$dataAtual.txt');
+      await file.writeAsString(conteudo);
+      await Share.shareFiles([file.path], text: 'Aqui está o arquivo JSON!');
+    } catch (e, stackTrace) {
+      String conteudo = "";
+      var boxException = await Hive.openBox<DadoException>('tbException');
+      boxException.add(new DadoException(
+          mensagem: e.toString(),
+          stackTrace: stackTrace.toString(),
+          data: DateTime.now()));
+
+      conteudo += "\n--------------------- INFOS ---------------------\n";
+      if (listaGeral.length != 0) {
+        int tamanhoListaGeral = listaGeral.length;
+        DateTime inicioColeta = listaGeral[0].dataColetaDados;
+        DateTime fimColeta = listaGeral[tamanhoListaGeral - 1].dataColetaDados;
+        conteudo +=
+            "Tamanho listaGeral: $tamanhoListaGeral\n Inicio coleta: $inicioColeta \n Fim coleta: $fimColeta";
+      }
+      var dadosException = boxException.values;
+      conteudo += "\n--------------------- EXCEPTIONS ---------------------\n";
+      for (var ex in dadosException) {
+        String message = ex.mensagem;
+        String stackTrace = ex.stackTrace;
+        DateTime data = ex.data;
+        conteudo +=
+            "DataException: $data - Mensagem: $message - Stack: $stackTrace \n";
+        boxException.delete(ex.key);
       }
     }
   }

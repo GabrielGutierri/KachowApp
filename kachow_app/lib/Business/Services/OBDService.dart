@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Domain/entities/Acelerometro.dart';
 import 'package:kachow_app/Domain/entities/DadoCarro.dart';
+import 'package:kachow_app/Domain/entities/Giroscopio.dart';
 
 class Obdservice {
   final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
@@ -52,6 +53,14 @@ class Obdservice {
         //await iniciarEscuta(connection);
         await EnviaComandos(listaComandos, connection);
       }
+      Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
+      Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
+      var aceleracaoX = acelerometro.aceleracaoX;
+      var aceleracaoY = acelerometro.aceleracaoY;
+      var aceleracaoZ = acelerometro.aceleracaoZ;
+      print("X: $aceleracaoX");
+      print("Y: $aceleracaoY");
+      print("Z: $aceleracaoZ");
     } catch (e) {
       print(e);
     }
@@ -60,24 +69,33 @@ class Obdservice {
   Future<void> EnviaComandos(listaComandos, connection) async {
     DadoCarro dadoCarro = DadoCarro();
     dadoCarro.dataColetaDados = DateTime.now();
-    for (var comando in listaComandos) {
-      String resposta = await enviarComando(comando, connection);
-      if (comando == "01 0D\r") dadoCarro.velocidade = resposta;
-      if (comando == "01 0C\r") dadoCarro.rpm = resposta;
-      if (comando == "01 0B\r") dadoCarro.pressaoColetorAdmissao = resposta;
-      if (comando == "01 0F\r") dadoCarro.tempArAdmissao = resposta;
-      if (comando == "01 04\r") dadoCarro.engineLoad = resposta;
-      if (comando == "01 11\r") dadoCarro.throttlePosition = resposta;
-    }
+    // for (var comando in listaComandos) {
+    //   String resposta = await enviarComando(comando, connection);
+    //   if (comando == "01 0D\r") dadoCarro.velocidade = resposta;
+    //   if (comando == "01 0C\r") dadoCarro.rpm = resposta;
+    //   if (comando == "01 0B\r") dadoCarro.pressaoColetorAdmissao = resposta;
+    //   if (comando == "01 0F\r") dadoCarro.tempArAdmissao = resposta;
+    //   if (comando == "01 04\r") dadoCarro.engineLoad = resposta;
+    //   if (comando == "01 11\r") dadoCarro.throttlePosition = resposta;
+    // }
     Position geolocation = await geolocationService!.obterGeolocation();
     Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
-
-    dadoCarro.latitude = geolocation.latitude;
-    dadoCarro.longitude = geolocation.longitude;
-    dadoCarro.aceleracaoX = acelerometro.aceleracaoX;
-    dadoCarro.aceleracaoY = acelerometro.aceleracaoY;
-    dadoCarro.aceleracaoZ = acelerometro.aceleracaoZ;
-    boxDados.add(dadoCarro);
+    Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
+    var aceleracaoX = acelerometro.aceleracaoX;
+    var aceleracaoY = acelerometro.aceleracaoY;
+    var aceleracaoZ = acelerometro.aceleracaoZ;
+    print("X: $aceleracaoX");
+    print("Y: $aceleracaoY");
+    print("Z: $aceleracaoZ");
+    // dadoCarro.latitude = geolocation.latitude;
+    // dadoCarro.longitude = geolocation.longitude;
+    // dadoCarro.aceleracaoX = acelerometro.aceleracaoX;
+    // dadoCarro.aceleracaoY = acelerometro.aceleracaoY;
+    // dadoCarro.aceleracaoZ = acelerometro.aceleracaoZ;
+    // dadoCarro.giroscopioX = giroscopio.giroscopioX;
+    // dadoCarro.giroscopioY = giroscopio.giroscopioY;
+    // dadoCarro.giroscopioZ = giroscopio.giroscopioZ;
+    // boxDados.add(dadoCarro);
   }
 
   Future<String> testaComandoOBD(

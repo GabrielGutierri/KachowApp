@@ -21,11 +21,11 @@ class MainService {
   Future<void> startAllServices() async {
     // await geoService
     //     .obterGeolocation(); //vou adicionar uma geolocalizacao, pois o serviço só vai pegar daqui 8sec
-    await obdService.iniciarEscuta(connection);
+    //await obdService.iniciarEscuta(connection);
+    await obdService.instanciarServices();
     obdSubscription = Stream.periodic(Duration(seconds: 1))
         .asyncMap((_) => coletarDadosOBD())
         .listen((_) {});
-
     // acelerometroSubscription = Stream.periodic(Duration(seconds: 1))
     //     .asyncMap((_) => coletarDadosAcelerometro())
     //     .listen((_) {});
@@ -40,15 +40,15 @@ class MainService {
 
   Future<void> coletarDadosOBD() async {
     try {
-      if (connection != null) {
-        await obdService.iniciarServico(connection);
-      }
+      //if (connection != null) {
+      await obdService.iniciarServico(connection);
+      //}
     } catch (e, stackTrace) {
-      // var boxException = await Hive.openBox<DadoException>('tbException');
-      // boxException.add(new DadoException(
-      //     mensagem: e.toString(),
-      //     stackTrace: stackTrace.toString(),
-      //     data: DateTime.now()));
+      var boxException = await Hive.openBox<DadoException>('tbException');
+      boxException.add(new DadoException(
+          mensagem: e.toString(),
+          stackTrace: stackTrace.toString(),
+          data: DateTime.now()));
     }
   }
 

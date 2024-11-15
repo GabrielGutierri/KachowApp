@@ -4,6 +4,7 @@ import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:kachow_app/Domain/entities/Acelerometro.dart';
+import 'package:kachow_app/Domain/entities/Giroscopio.dart';
 
 class GeolocationService {
   double _aceleracaoX = 0.0;
@@ -58,92 +59,10 @@ class GeolocationService {
     }
   }
 
-  // Método para calcular a aceleração nos eixos X, Y, Z e retornar os três valores
-  Future<List<double>> calculaAceleracaoSensor() async {
-    try {
-      // Imprimir os valores de aceleração nos eixos X, Y e Z
-      print('Aceleração eixo X: $_aceleracaoX');
-      print('Aceleração eixo Y (longitudinal): $_aceleracaoY');
-      print('Aceleração eixo Z: $_aceleracaoZ');
-
-      // Retornar os três valores de aceleração
-      return [_aceleracaoX, _aceleracaoY, _aceleracaoZ];
-    } catch (e) {
-      print('Erro ao calcular a aceleração: $e');
-      return [0.0, 0.0, 0.0]; // Valor padrão no caso de erro
-    }
-  }
-
-  // Método para obter o valor do giroscópio e devolver os ângulos de Roll, Pitch e Yaw
-  Future<List<double>> calcularOrientacao() async {
-    try {
-      // Pitch: inclinação para frente/trás
-      double pitch = atan2(_aceleracaoY,
-              sqrt(_aceleracaoX * _aceleracaoX + _aceleracaoZ * _aceleracaoZ)) *
-          (180 / pi);
-
-      // Roll: inclinação para os lados
-      double roll = atan2(_aceleracaoX,
-              sqrt(_aceleracaoY * _aceleracaoY + _aceleracaoZ * _aceleracaoZ)) *
-          (180 / pi);
-
-      // Yaw (rotação no plano horizontal), derivado do giroscópio
-      double yaw = _giroscopioZ * (180 / pi); // Em graus por segundo
-
-      print('Roll calculado: $roll');
-      print('Pitch calculado: $pitch');
-      print('Yaw calculado: $yaw');
-
-      // Retornar os três ângulos
-      return [roll, pitch, yaw];
-    } catch (e) {
-      print('Erro ao calcular os ângulos: $e');
-      return [0.0, 0.0, 0.0]; // Valor padrão no caso de erro
-    }
-  }
-
-  // Método para obter a geolocalização e retornar as coordenadas no formato GeoJSON (longitude, latitude)
-  Future<List<double>> TrataMensagemGeolocalizacao() async {
-    try {
-      Position position = await _getGeoLocation();
-      print('Latitude: ${position.latitude}, Longitude: ${position.longitude}');
-      return [position.longitude, position.latitude];
-    } catch (e) {
-      print('Erro ao obter a localização: $e');
-      return [0.0, 0.0]; // Valor padrão no caso de erro
-    }
-  }
-
   Future<Position> obterGeolocation() async {
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     return position;
-  }
-
-  // Método auxiliar para obter a localização
-  Future<Position> _getGeoLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Serviço de localização está desativado.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Permissão de localização negada.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception('Permissão de localização negada permanentemente.');
-    }
-
-    return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
   }
 
   //obter apenas a aceleracaoX, aceleracaoY e aceleracaoZ... realizar calculos depois no pós processamento
@@ -157,13 +76,10 @@ class GeolocationService {
   }
 
   // Método para obter o valor do giroscópio
-  Future<List<double>> obterGiroscopio() async {
-    try {
-      // Retornar os dados do giroscópio nos três eixos (X, Y, Z)
-      return [_giroscopioX, _giroscopioY, _giroscopioZ];
-    } catch (e) {
-      print('Erro ao obter o giroscópio: $e');
-      return [0.0, 0.0, 0.0]; // Valor padrão no caso de erro
-    }
+  Future<Giroscopio> obterGiroscopio() async {
+    return new Giroscopio(
+        giroscopioX: _giroscopioX,
+        giroscopioY: _giroscopioY,
+        giroscopioZ: _giroscopioZ);
   }
 }

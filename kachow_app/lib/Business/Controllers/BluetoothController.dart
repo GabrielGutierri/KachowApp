@@ -16,10 +16,10 @@ class BluetoothController {
   Device? _dispositivoOBD = null;
 
   Future rotinaComandos() async {
-    BluetoothConnection? newConnection =
-        await bluePlugin.connect(_dispositivoOBD!.address);
-    _mainService = MainService(connection: newConnection);
-    //_mainService = MainService(connection: null);
+    //BluetoothConnection? newConnection =
+    //    await bluePlugin.connect(_dispositivoOBD!.address);
+    //_mainService = MainService(connection: newConnection);
+    _mainService = MainService(connection: null);
     await _mainService.startAllServices();
   }
 
