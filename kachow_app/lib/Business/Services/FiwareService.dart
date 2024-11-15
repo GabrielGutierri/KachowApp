@@ -1,13 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:hive/hive.dart';
 import 'package:http/http.dart';
-import 'package:kachow_app/Business/Utils/TrataMensagemOBD.dart';
-import 'package:kachow_app/Business/Utils/TrataMensagemSensores.dart';
 import 'package:kachow_app/Domain/TO/RetornoDispositivoFiwareTO.dart';
 import 'package:kachow_app/Domain/TO/RetornoErroFiwareTO.dart';
-import 'package:kachow_app/Domain/entities/DadoCarro.dart';
-import 'package:kachow_app/Domain/entities/DadoException.dart';
 import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
@@ -15,7 +9,7 @@ import 'package:share/share.dart';
 import 'package:http/http.dart' as http;
 
 class Fiwareservice {
-  final String _ip = "46.17.108.131";
+  static final String ip = "46.17.108.131";
 
   Future<void> SalvarEntidadeVeiculo(IdentificacaoVeiculo veiculo) async {
     String deviceID = veiculo.placa;
@@ -31,7 +25,7 @@ class Fiwareservice {
   Future<void> ProvisionarDispositivo(
       String deviceID, String deviceName) async {
     //enviar um post para a url http://{{url}}:4041/iot/devices
-    var urlDevice = Uri.parse("http://$_ip:4041/iot/devices");
+    var urlDevice = Uri.parse("http://$ip:4041/iot/devices");
 
     var body = {
       "devices": [
@@ -77,7 +71,7 @@ class Fiwareservice {
   }
 
   Future<void> AdicionarSubscription(String deviceName) async {
-    var urlSubscription = Uri.parse("http://$_ip:1026/v2/subscriptions/");
+    var urlSubscription = Uri.parse("http://$ip:1026/v2/subscriptions/");
     var body = {
       "description":
           "Notificar STH Comet de mudanças em $deviceName", // Descrição da notificação
@@ -105,7 +99,7 @@ class Fiwareservice {
         }
       },
       "notification": {
-        "http": {"url": "http://$_ip:8666/notify"},
+        "http": {"url": "http://$ip:8666/notify"},
         "attrs": [
           "velocidade",
           "rpm",
@@ -135,7 +129,7 @@ class Fiwareservice {
   }
 
   Future<void> CriarEntidadeOrion(String deviceName) async {
-    var urlOrion = Uri.parse("http://$_ip:1026/v2/entities");
+    var urlOrion = Uri.parse("http://$ip:1026/v2/entities");
     Map<String, dynamic> body = {
       "id": deviceName, //substituir carro pelo entity_name do passo anterior
       "type": "Carro",
@@ -170,7 +164,7 @@ class Fiwareservice {
 
   Future<bool> VerificaDispositivoExistente(
       String deviceID, String deviceName) async {
-    var url = Uri.parse("http://$_ip:1026/v2/entities/$deviceName");
+    var url = Uri.parse("http://$ip:1026/v2/entities/$deviceName");
     Response response = await http.get(url,
         headers: {"fiware-service": "smart", "fiware-servicepath": "/"});
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -206,159 +200,5 @@ class Fiwareservice {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('deviceID', deviceID);
     await prefs.setString('deviceName', deviceName);
-  }
-
-  Future<void> preencheTabelaFIWARE() async {
-    Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
-
-    var dadosCarro = boxDados.values;
-
-    List<DadoCarro> listaCarro = [];
-
-    for (var dadoCarro in dadosCarro) {
-      listaCarro.add(dadoCarro);
-      boxDados.delete(dadoCarro.key);
-    }
-
-    await RotinaEnvioFIWARE(listaCarro);
-  }
-
-  Future<void> RotinaEnvioFIWARE(List<DadoCarro> listaGeral) async {
-    try {
-      String conteudo = "";
-      for (var dado in listaGeral) {
-        Map<String, dynamic> body = {
-          "velocidade": {
-            "type": "float",
-            "value": TrataMensagemOBD.TrataMensagemVelocidade(dado.velocidade)
-            //"value": dado.obd.velocidade
-          },
-          "rpm": {
-            "type": "float",
-            "value": TrataMensagemOBD.TrataMensagemRPM(dado.rpm)
-            //"value": dado.obd.rpm
-          },
-          "pressure": {
-            "type": "float",
-            "value": TrataMensagemOBD.TrataMensagemIntakePressure(
-                dado.pressaoColetorAdmissao)
-            //"value": dado.obd.pressaoColetorAdmissao
-          },
-          "temperature": {
-            "type": "float",
-            "value": TrataMensagemOBD.TrataMensagemIntakeTemperature(
-                dado.tempArAdmissao)
-            //"value": dado.obd.tempArAdmissao
-          },
-          "engineload": {
-            "type": "float",
-            "value": TrataMensagemOBD.TrataMensagemEngineLoad(dado.engineLoad)
-            //"value": dado.obd.engineLoad
-          },
-          "throttlePosition": {
-            "type": "float",
-            "value": TrataMensagemOBD.TrataMensagemThrottlePosition(
-                dado.throttlePosition)
-          },
-          "location": {
-            "type": "geo:json",
-            "value": {
-              "type": "Point",
-              "coordinates": [
-                dado.latitude,
-                dado.longitude
-              ] // Coordenadas padrão
-            }
-          },
-          'acelerometroEixoX': {'type': 'float', 'value': dado.aceleracaoX},
-          'acelerometroEixoY': {'type': 'float', 'value': dado.aceleracaoY},
-          'acelerometroEixoZ': {'type': 'float', 'value': dado.aceleracaoZ},
-          'giroscopioRow': {
-            'type': 'float',
-            'value': TrataMensagemSensores.CalculaGiroscopioRow(
-                dado.aceleracaoX, dado.aceleracaoY, dado.aceleracaoZ)
-          },
-          'giroscopioPitch': {
-            'type': 'float',
-            'value': TrataMensagemSensores.CalculaGiroscopioPitch(
-                dado.aceleracaoY, dado.aceleracaoX, dado.aceleracaoZ)
-          },
-          'giroscopioYaw': {
-            'type': 'float',
-            'value':
-                TrataMensagemSensores.CalculaGiroscopioYaw(dado.giroscopioZ)
-          },
-          "dataColetaDados": {
-            "type": "Text",
-            "value": dado.dataColetaDados.toString()
-          }
-        };
-        conteudo += jsonEncode(body) + "\n";
-        //ao invés de jogar no fiware, por ora vou salvar num txt
-
-        // SharedPreferences prefs = await SharedPreferences.getInstance();
-        // String deviceName = prefs.getString('deviceName') ?? "";
-        // if (deviceName != "") {
-        //   String urlUpdate = 'http://$_ip:1026/v2/entities/$deviceName/attrs';
-        //   var url = Uri.parse(urlUpdate);
-
-        //   await http.post(url, body: json.encode(body), headers: {
-        //     "Content-Type": "application/json",
-        //     "fiware-service": "smart",
-        //     "fiware-servicepath": "/"
-        //   });
-        //}
-      }
-      conteudo += "\n--------------------- INFOS ---------------------\n";
-      int tamanhoListaGeral = listaGeral.length;
-      DateTime inicioColeta = listaGeral[0].dataColetaDados;
-      DateTime fimColeta = listaGeral[tamanhoListaGeral - 1].dataColetaDados;
-      conteudo +=
-          "Tamanho listaGeral: $tamanhoListaGeral\n Inicio coleta: $inicioColeta \n Fim coleta: $fimColeta";
-
-      Box<DadoException> boxException = await Hive.openBox('tbException');
-      var dadosException = boxException.values;
-      conteudo += "\n--------------------- EXCEPTIONS ---------------------\n";
-      for (var ex in dadosException) {
-        String message = ex.mensagem;
-        String stackTrace = ex.stackTrace;
-        DateTime data = ex.data;
-        conteudo +=
-            "DataException: $data - Mensagem: $message - Stack: $stackTrace \n";
-        boxException.delete(ex.key);
-      }
-
-      var dataAtual = DateTime.now();
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/dadosCorrida$dataAtual.txt');
-      await file.writeAsString(conteudo);
-      await Share.shareFiles([file.path], text: 'Aqui está o arquivo JSON!');
-    } catch (e, stackTrace) {
-      String conteudo = "";
-      var boxException = await Hive.openBox<DadoException>('tbException');
-      boxException.add(new DadoException(
-          mensagem: e.toString(),
-          stackTrace: stackTrace.toString(),
-          data: DateTime.now()));
-
-      conteudo += "\n--------------------- INFOS ---------------------\n";
-      if (listaGeral.length != 0) {
-        int tamanhoListaGeral = listaGeral.length;
-        DateTime inicioColeta = listaGeral[0].dataColetaDados;
-        DateTime fimColeta = listaGeral[tamanhoListaGeral - 1].dataColetaDados;
-        conteudo +=
-            "Tamanho listaGeral: $tamanhoListaGeral\n Inicio coleta: $inicioColeta \n Fim coleta: $fimColeta";
-      }
-      var dadosException = boxException.values;
-      conteudo += "\n--------------------- EXCEPTIONS ---------------------\n";
-      for (var ex in dadosException) {
-        String message = ex.mensagem;
-        String stackTrace = ex.stackTrace;
-        DateTime data = ex.data;
-        conteudo +=
-            "DataException: $data - Mensagem: $message - Stack: $stackTrace \n";
-        boxException.delete(ex.key);
-      }
-    }
   }
 }

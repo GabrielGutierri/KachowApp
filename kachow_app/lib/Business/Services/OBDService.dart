@@ -49,18 +49,10 @@ class Obdservice {
     ];
 
     try {
-      if (connection != null) {
-        //await iniciarEscuta(connection);
-        await EnviaComandos(listaComandos, connection);
-      }
-      Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
-      Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
-      var aceleracaoX = acelerometro.aceleracaoX;
-      var aceleracaoY = acelerometro.aceleracaoY;
-      var aceleracaoZ = acelerometro.aceleracaoZ;
-      print("X: $aceleracaoX");
-      print("Y: $aceleracaoY");
-      print("Z: $aceleracaoZ");
+      //if (connection != null) {
+      //await iniciarEscuta(connection);
+      await EnviaComandos(listaComandos, connection);
+      //}
     } catch (e) {
       print(e);
     }
@@ -81,21 +73,23 @@ class Obdservice {
     Position geolocation = await geolocationService!.obterGeolocation();
     Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
     Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
-    var aceleracaoX = acelerometro.aceleracaoX;
-    var aceleracaoY = acelerometro.aceleracaoY;
-    var aceleracaoZ = acelerometro.aceleracaoZ;
-    print("X: $aceleracaoX");
-    print("Y: $aceleracaoY");
-    print("Z: $aceleracaoZ");
-    // dadoCarro.latitude = geolocation.latitude;
-    // dadoCarro.longitude = geolocation.longitude;
-    // dadoCarro.aceleracaoX = acelerometro.aceleracaoX;
-    // dadoCarro.aceleracaoY = acelerometro.aceleracaoY;
-    // dadoCarro.aceleracaoZ = acelerometro.aceleracaoZ;
-    // dadoCarro.giroscopioX = giroscopio.giroscopioX;
-    // dadoCarro.giroscopioY = giroscopio.giroscopioY;
-    // dadoCarro.giroscopioZ = giroscopio.giroscopioZ;
-    // boxDados.add(dadoCarro);
+    dadoCarro.latitude = geolocation.latitude;
+    dadoCarro.longitude = geolocation.longitude;
+    dadoCarro.aceleracaoX = acelerometro.aceleracaoX;
+    dadoCarro.aceleracaoY = acelerometro.aceleracaoY;
+    dadoCarro.aceleracaoZ = acelerometro.aceleracaoZ;
+    dadoCarro.giroscopioX = giroscopio.giroscopioX;
+    dadoCarro.giroscopioY = giroscopio.giroscopioY;
+    dadoCarro.giroscopioZ = giroscopio.giroscopioZ;
+    if (connection == null) {
+      dadoCarro.velocidade = "1";
+      dadoCarro.rpm = "2";
+      dadoCarro.pressaoColetorAdmissao = "3";
+      dadoCarro.tempArAdmissao = "4";
+      dadoCarro.engineLoad = "5";
+      dadoCarro.throttlePosition = "6";
+    }
+    boxDados.add(dadoCarro);
   }
 
   Future<String> testaComandoOBD(

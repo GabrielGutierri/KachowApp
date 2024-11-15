@@ -5,16 +5,17 @@ import 'package:hive/hive.dart';
 import 'package:kachow_app/Business/Services/FiwareService.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
+import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
 
 class MainService {
-  // final GeolocationService geoService = GeolocationService();
   final Obdservice obdService = Obdservice();
-  final Fiwareservice fiwareService = Fiwareservice();
+  final RequestFIWAREService requestFiware = RequestFIWAREService();
+
   BluetoothConnection? connection;
   StreamSubscription? obdSubscription;
-  // StreamSubscription? acelerometroSubscription;
-  // StreamSubscription? geolocalizacaoSubscription;
+  StreamSubscription? tratativaDadosSubscription;
+  StreamSubscription? requestFiwareSubscription;
 
   MainService({required this.connection});
 
@@ -26,14 +27,13 @@ class MainService {
     obdSubscription = Stream.periodic(Duration(seconds: 1))
         .asyncMap((_) => coletarDadosOBD())
         .listen((_) {});
-    // acelerometroSubscription = Stream.periodic(Duration(seconds: 1))
-    //     .asyncMap((_) => coletarDadosAcelerometro())
-    //     .listen((_) {});
+    tratativaDadosSubscription = Stream.periodic(Duration(seconds: 2))
+        .asyncMap((_) => tratarDadosOBD())
+        .listen((_) {});
 
-    // geolocalizacaoSubscription = Stream.periodic(Duration(seconds: 8))
-    //     .asyncMap((_) => coletarDadosGeolocalizacao())
-    //     .listen((_) {});
-
+    requestFiwareSubscription = Stream.periodic(Duration(seconds: 3))
+        .asyncMap((_) => enviarDadosFIWARE())
+        .listen((_) {});
     //Mudança 09/11: vou coletar tudo de uma vez, para deixar as coisas mais
     //simples com problemas de sincronização por ora
   }
@@ -52,45 +52,40 @@ class MainService {
     }
   }
 
-  // Future<void> coletarDadosAcelerometro() async {
-  //   try {
-  //     await geoService.obterAcelerometro();
-  //   } catch (e, stackTrace) {
-  //     // var boxException = await Hive.openBox<DadoException>('tbException');
-  //     // boxException.add(new DadoException(
-  //     //     mensagem: e.toString(),
-  //     //     stackTrace: stackTrace.toString(),
-  //     //     data: DateTime.now()));
-  //   }
-  // }
+  Future<void> tratarDadosOBD() async {
+    try {
+      await requestFiware.trataDadosOBD();
+    } catch (e, stackTrace) {
+      var boxException = await Hive.openBox<DadoException>('tbException');
+      boxException.add(new DadoException(
+          mensagem: e.toString(),
+          stackTrace: stackTrace.toString(),
+          data: DateTime.now()));
+    }
+  }
 
-  // Future<void> coletarDadosGeolocalizacao() async {
-  //   try {
-  //     await geoService.obterGeolocation();
-  //   } catch (e, stackTrace) {
-  //     // var boxException = await Hive.openBox<DadoException>('tbException');
-  //     // boxException.add(new DadoException(
-  //     //     mensagem: e.toString(),
-  //     //     stackTrace: stackTrace.toString(),
-  //     //     data: DateTime.now()));
-  //   }
-  // }
-
-  Future<void> preencheTabelaFIWARE() async {
-    //ficar vendo conexao com internet para enviar. Se não tiver depois de um tempo, matar todos os dados
-    await fiwareService.preencheTabelaFIWARE();
+  Future<void> enviarDadosFIWARE() async {
+    try {
+      await requestFiware.rotinaRequestFIWARE();
+    } catch (e, stackTrace) {
+      var boxException = await Hive.openBox<DadoException>('tbException');
+      boxException.add(new DadoException(
+          mensagem: e.toString(),
+          stackTrace: stackTrace.toString(),
+          data: DateTime.now()));
+    }
   }
 
   Future<void> stopAllServices() async {
     try {
       obdSubscription?.cancel();
-      // acelerometroSubscription?.cancel();
-      // geolocalizacaoSubscription?.cancel();
+      tratativaDadosSubscription?.cancel();
+      requestFiwareSubscription?.cancel();
       //cancelar a conexao com o Bluetooth;
-      await connection!.finish();
-      connection!.dispose();
+      //await connection!.finish();
+      //connection!.dispose();
 
-      await preencheTabelaFIWARE();
+      await requestFiware.RotinaLimpeza();
     } catch (ex) {
       print(ex);
     }
