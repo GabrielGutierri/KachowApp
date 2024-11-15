@@ -25,11 +25,11 @@ class MainService {
     obdSubscription = Stream.periodic(Duration(seconds: 1))
         .asyncMap((_) => coletarDadosOBD())
         .listen((_) {});
-    tratativaDadosSubscription = Stream.periodic(Duration(seconds: 2))
+    tratativaDadosSubscription = Stream.periodic(Duration(seconds: 10))
         .asyncMap((_) => tratarDadosOBD())
         .listen((_) {});
 
-    requestFiwareSubscription = Stream.periodic(Duration(seconds: 3))
+    requestFiwareSubscription = Stream.periodic(Duration(seconds: 30))
         .asyncMap((_) => enviarDadosFIWARE())
         .listen((_) {});
     //Mudança 09/11: vou coletar tudo de uma vez, para deixar as coisas mais
