@@ -17,6 +17,8 @@ class Fiwareservice {
     await CriarEntidadeOrion(deviceName);
     await AdicionarSubscription(deviceName);
     await CriarEntidadeOrion(deviceName);
+    await AdicionarSubscriptionException(deviceName);
+    await CriarEntidadeException(deviceName);
     await ArmazenarValoresCarro(deviceID, deviceName);
   }
 
@@ -162,8 +164,9 @@ class Fiwareservice {
 
   Future<void> CriarEntidadeException(String deviceName) async {
     var urlOrion = Uri.parse("http://$ip:1026/v2/entities");
+    var deviceException = deviceName + "Exception";
     Map<String, dynamic> body = {
-      "id": deviceName + "Exception",
+      "id": deviceException,
       "type": "Exception",
       "mensagem": {"type": "Text", "value": ""},
       "stackTrace": {"type": "Text", "value": ""},
@@ -179,11 +182,12 @@ class Fiwareservice {
 
   Future<void> AdicionarSubscriptionException(String deviceName) async {
     var urlSubscription = Uri.parse("http://$ip:1026/v2/subscriptions/");
+    var deviceException = deviceName + "Exception";
     var body = {
       "description": "$deviceName Exceptions", // Descrição da notificação
       "subject": {
         "entities": [
-          {"id": deviceName + "Exception", "type": "Exception"}
+          {"id": deviceException, "type": "Exception"}
         ],
         "conditions": {
           "attrs": ["mensagem"]

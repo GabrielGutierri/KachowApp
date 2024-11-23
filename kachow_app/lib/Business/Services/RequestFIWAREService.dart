@@ -139,6 +139,8 @@ class RequestFIWAREService {
         recallInternetStatus += 1;
       }
     }
+    await LimpaTabelaOBD();
+    await LimpaTabelaRequisicao();
   }
 
   Future<void> LimpaTabelaOBD() async {
