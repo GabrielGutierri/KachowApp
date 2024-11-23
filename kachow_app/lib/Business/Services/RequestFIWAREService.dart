@@ -168,10 +168,15 @@ class RequestFIWAREService {
       final result = await InternetAddress.lookup('google.com');
       //se nao tiver net, ele retorna uma exceção
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        String dataException = exception.data.toString();
+        String mensagemTratada = TrataMensagemException(exception.mensagem);
         Map<String, dynamic> body = {
-          "mensagem": {"type": "Text", "value": exception.mensagem},
-          "stackTrace": {"type": "Text", "value": exception.stackTrace},
-          "data": {"type": "Text", "value": exception.data}
+          "mensagem": {
+            "type": "Text",
+            "value": "$dataException: $mensagemTratada"
+          },
+          "stackTrace": {"type": "Text", "value": "VAZIO"},
+          "data": {"type": "Text", "value": exception.data.toString()}
         };
         if (deviceName != "") {
           String deviceException = deviceName + "Exception";
@@ -190,5 +195,11 @@ class RequestFIWAREService {
         return;
       }
     }
+  }
+
+  String TrataMensagemException(String mensagem) {
+    RegExp regex = RegExp(r"[()=']");
+    String result = mensagem.replaceAll(regex, "");
+    return result;
   }
 }
