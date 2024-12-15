@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:kachow_app/Business/Services/NativeService.dart';
 import 'package:kachow_app/Domain/entities/DadoCarro.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
 import 'package:kachow_app/Domain/entities/DadoRequisicao.dart';
@@ -16,6 +17,8 @@ void main() async {
   await Hive.openBox<DadoCarro>('tbFilaDados');
   await Hive.openBox<DadoRequisicao>('tbFilaRequisicao');
   await Hive.openBox<DadoException>('tbException');
+
+  NativeService.initialize();
   runApp(const MyApp());
   await checkPermissions();
 }

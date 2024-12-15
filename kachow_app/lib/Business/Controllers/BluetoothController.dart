@@ -1,13 +1,12 @@
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:bluetooth_classic/models/device.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
-import 'package:kachow_app/Business/Services/MainService.dart';
+import 'package:kachow_app/Business/Services/NativeService.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BluetoothController {
   final Obdservice _obdservice;
-  late MainService _mainService;
 
   BluetoothController(this._obdservice);
 
@@ -18,13 +17,13 @@ class BluetoothController {
   Future rotinaComandos() async {
     BluetoothConnection? newConnection =
         await bluePlugin.connect(_dispositivoOBD!.address);
-    _mainService = MainService(connection: newConnection);
-    //_mainService = MainService(connection: null);
-    await _mainService.startAllServices();
+    NativeService.bluetoothConnection = newConnection;
+    NativeService.initServices();
   }
 
   Future pararComandos() async {
-    await _mainService.stopAllServices();
+    //TO DO: fazer esse cara parar os serviços no kotlin
+    await NativeService.stopServices();
   }
 
   Future<List<Device>> ObterDispositivosPareados() async {
@@ -50,16 +49,20 @@ class BluetoothController {
   }
 
   Future<bool> ConectarAoDispositivo(Device dispositivo) async {
-    BluetoothConnection? connectionB =
-        await bluePlugin.connect(dispositivo.address);
-    if (connectionB!.isConnected) {
-      bool dispositivoOBD = await _obdservice.TestarConexaoELM(connectionB);
+    try {
+      BluetoothConnection? connectionB =
+          await bluePlugin.connect(dispositivo.address);
+      if (connectionB!.isConnected) {
+        bool dispositivoOBD = await _obdservice.TestarConexaoELM(connectionB);
 
-      if (dispositivoOBD) {
-        _dispositivoOBD = dispositivo;
-        return true;
+        if (dispositivoOBD) {
+          _dispositivoOBD = dispositivo;
+          return true;
+        }
       }
+      return false;
+    } catch (ex) {
+      return false;
     }
-    return false;
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kachow_app/Business/Controllers/BluetoothController.dart';
 import 'package:bluetooth_classic/models/device.dart';
+import 'package:kachow_app/Business/Services/NativeService.dart';
 
 class BluetoothPage extends StatefulWidget {
   final BluetoothController _bluetoothController;
@@ -12,6 +14,31 @@ class BluetoothPage extends StatefulWidget {
 }
 
 class _BluetoothPageState extends State<BluetoothPage> {
+  static const platform = const MethodChannel('foreground_service');
+  String _serverState = 'Did not make the call yet';
+
+  Future<void> _startService() async {
+    try {
+      final result = await platform.invokeMethod('startForegroundService');
+      setState(() {
+        _serverState = result;
+      });
+    } on PlatformException catch (e) {
+      print("Failed to invoke method: '${e.message}'.");
+    }
+  }
+
+  Future<void> _stopService() async {
+    try {
+      final result = await platform.invokeMethod('stopForegroundService');
+      setState(() {
+        _serverState = result;
+      });
+    } on PlatformException catch (e) {
+      print("Failed to invoke method: '${e.message}'.");
+    }
+  }
+
   bool bluetoothValido = false;
   bool comandosIniciados = false;
 
@@ -68,19 +95,28 @@ class _BluetoothPageState extends State<BluetoothPage> {
   }
 
   Future<void> IniciarRotinaComandos() async {
-    await widget._bluetoothController.rotinaComandos();
-    setState(() {
-      bluetoothValido = true;
-      comandosIniciados = true;
-    });
+    try {
+      await widget._bluetoothController.rotinaComandos();
+      await _startService();
+      setState(() {
+        bluetoothValido = true;
+        comandosIniciados = true;
+      });
+    } catch (e) {
+      _exibirMensagemErro(context, 'Erro');
+    }
   }
 
   Future<void> PararRotinaComandos() async {
-    await widget._bluetoothController.pararComandos();
-    setState(() {
-      bluetoothValido = true;
-      comandosIniciados = false;
-    });
+    try {
+      await NativeService.stopServices();
+      await _stopService();
+      setState(() {
+        comandosIniciados = false;
+      });
+    } catch (ex) {
+      _exibirMensagemErro(context, 'Erro');
+    }
   }
 
   Future<void> _testarComandoOBD(BuildContext context) async {

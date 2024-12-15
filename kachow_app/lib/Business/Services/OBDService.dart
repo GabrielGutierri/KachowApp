@@ -14,6 +14,9 @@ class Obdservice {
   final Box<DadoCarro> boxDados = Hive.box<DadoCarro>('tbFilaDados');
   late GeolocationService? geolocationService;
 
+  static DateTime? ultimaColetaDados;
+  static bool? ELMOcupado;
+
   Future iniciarServico(BluetoothConnection? connection) async {
     await rotinaComandos(connection);
   }
@@ -23,6 +26,7 @@ class Obdservice {
       String resposta = String.fromCharCodes(data);
       Completer<String> completer = respostaQueue.removeFirst();
       completer.complete(resposta);
+      ultimaColetaDados = DateTime.now();
     });
   }
 
@@ -51,7 +55,10 @@ class Obdservice {
     try {
       //if (connection != null) {
       //await iniciarEscuta(connection);
-      await EnviaComandos(listaComandos, connection);
+      if (ELMOcupado == false || ELMOcupado == null) {
+        ELMOcupado = true;
+        await EnviaComandos(listaComandos, connection);
+      }
       //}
     } catch (e) {
       print(e);
@@ -70,18 +77,20 @@ class Obdservice {
       if (comando == "01 04\r") dadoCarro.engineLoad = resposta;
       if (comando == "01 11\r") dadoCarro.throttlePosition = resposta;
     }
-    Position geolocation = await geolocationService!.obterGeolocation();
-    Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
-    Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
-    dadoCarro.latitude = geolocation.latitude;
-    dadoCarro.longitude = geolocation.longitude;
-    dadoCarro.aceleracaoX = acelerometro.aceleracaoX;
-    dadoCarro.aceleracaoY = acelerometro.aceleracaoY;
-    dadoCarro.aceleracaoZ = acelerometro.aceleracaoZ;
-    dadoCarro.giroscopioX = giroscopio.giroscopioX;
-    dadoCarro.giroscopioY = giroscopio.giroscopioY;
-    dadoCarro.giroscopioZ = giroscopio.giroscopioZ;
+    // Position geolocation = await geolocationService!.obterGeolocation();
+    // Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
+    // Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
+    dadoCarro.latitude = 0;
+    dadoCarro.longitude = 0;
+    dadoCarro.aceleracaoX = 0;
+    dadoCarro.aceleracaoY = 0;
+    dadoCarro.aceleracaoZ = 0;
+    dadoCarro.giroscopioX = 0;
+    dadoCarro.giroscopioY = 0;
+    dadoCarro.giroscopioZ = 0;
+    //TO DO: fazer serviço nativo pegar geolocalizacao e giroscopio
     boxDados.add(dadoCarro);
+    ELMOcupado = false;
   }
 
   Future<String> testaComandoOBD(
