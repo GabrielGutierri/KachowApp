@@ -35,6 +35,8 @@ Future<void> checkPermissions() async {
 
   await Permission.bluetoothScan.request();
   await Permission.bluetoothConnect.request();
+
+  await Permission.notification.request();
 }
 
 class MyApp extends StatelessWidget {

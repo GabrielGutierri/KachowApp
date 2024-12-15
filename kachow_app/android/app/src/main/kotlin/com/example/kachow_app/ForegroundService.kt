@@ -31,7 +31,7 @@ class ForegroundService : Service() {
     private lateinit var tratarDadosTask: Runnable
     private lateinit var enviarDadosTask: Runnable
 
-    private val channelName = "foreground_service"
+    private val channelName = "foregroundOBD_service"
     private lateinit var methodChannel: MethodChannel
 
     override fun onCreate() {
@@ -65,7 +65,7 @@ class ForegroundService : Service() {
 
     private fun startForegroundService() {
         val channelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            createNotificationChannel("foreground_service", "Foreground Service")
+            createNotificationChannel("foregroundOBD_service", "Foreground Service")
         } else {
             ""
         }

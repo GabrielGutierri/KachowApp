@@ -6,7 +6,7 @@ import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
 
 class NativeService {
-  static const MethodChannel channel = MethodChannel('foreground_service');
+  static const MethodChannel channel = MethodChannel('foregroundOBD_service');
 
   static BluetoothConnection? bluetoothConnection;
 

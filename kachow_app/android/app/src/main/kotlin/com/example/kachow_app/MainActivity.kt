@@ -10,7 +10,7 @@ import io.flutter.embedding.engine.FlutterEngineCache
 
 
 class MainActivity: FlutterActivity(){
-    private val CHANNEL = "foreground_service"
+    private val CHANNEL = "foregroundOBD_service"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

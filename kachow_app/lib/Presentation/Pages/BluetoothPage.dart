@@ -14,7 +14,7 @@ class BluetoothPage extends StatefulWidget {
 }
 
 class _BluetoothPageState extends State<BluetoothPage> {
-  static const platform = const MethodChannel('foreground_service');
+  static const platform = const MethodChannel('foregroundOBD_service');
   String _serverState = 'Did not make the call yet';
 
   Future<void> _startService() async {
