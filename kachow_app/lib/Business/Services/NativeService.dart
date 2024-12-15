@@ -3,13 +3,14 @@ import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:hive/hive.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
 import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
+import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
 
 class NativeService {
   static const MethodChannel channel = MethodChannel('foregroundOBD_service');
 
   static BluetoothConnection? bluetoothConnection;
-
+  late GeolocationService? geolocationService;
   static late Obdservice obdservice;
   static late RequestFIWAREService requestFIWAREService;
 
@@ -24,6 +25,9 @@ class NativeService {
           break;
         case 'enviarDadosFIWARE':
           await _enviarDadosFIWARE();
+          break;
+        case 'coletarDadosGeolocalizao':
+          await _coletarDadosGeolocalizao();
           break;
         default:
           throw PlatformException(
@@ -86,4 +90,26 @@ class NativeService {
       await requestFIWAREService.RotinaLimpeza();
     }
   }
+
+
+
+  
+  static Future<void> _coletarDadosGeolocalizao() async {
+    try {
+      if (bluetoothConnection != null) {
+        await obdservice.rotinaComandos(bluetoothConnection);
+      }
+    } catch (e, stackTrace) {
+      var boxException = await Hive.openBox<DadoException>('tbException');
+      boxException.add(DadoException(
+          mensagem: e.toString(),
+          stackTrace: stackTrace.toString(),
+          data: DateTime.now()));
+    }
+  }
 }
+
+
+
+
+

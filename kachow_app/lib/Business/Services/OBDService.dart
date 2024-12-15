@@ -17,6 +17,16 @@ class Obdservice {
   static DateTime? ultimaColetaDados;
   static bool? ELMOcupado;
 
+  // Variáveis para armazenar dados de geolocalização, acelerômetro e giroscópio
+  double? latitude;
+  double? longitude;
+  double? aceleracaoX;
+  double? aceleracaoY;
+  double? aceleracaoZ;
+  double? giroscopioX;
+  double? giroscopioY;
+  double? giroscopioZ;
+
   Future iniciarServico(BluetoothConnection? connection) async {
     await rotinaComandos(connection);
   }
@@ -80,18 +90,50 @@ class Obdservice {
     // Position geolocation = await geolocationService!.obterGeolocation();
     // Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
     // Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
-    dadoCarro.latitude = 0;
-    dadoCarro.longitude = 0;
-    dadoCarro.aceleracaoX = 0;
-    dadoCarro.aceleracaoY = 0;
-    dadoCarro.aceleracaoZ = 0;
-    dadoCarro.giroscopioX = 0;
-    dadoCarro.giroscopioY = 0;
-    dadoCarro.giroscopioZ = 0;
+
+
+    // Utilizar os valores de geolocalização e sensores armazenados
+    dadoCarro.latitude = latitude ?? 0;
+    dadoCarro.longitude = longitude ?? 0;
+    dadoCarro.aceleracaoX = aceleracaoX ?? 0;
+    dadoCarro.aceleracaoY = aceleracaoY ?? 0;
+    dadoCarro.aceleracaoZ = aceleracaoZ ?? 0;
+    dadoCarro.giroscopioX = giroscopioX ?? 0;
+    dadoCarro.giroscopioY = giroscopioY ?? 0;
+    dadoCarro.giroscopioZ = giroscopioZ ?? 0;
+
     //TO DO: fazer serviço nativo pegar geolocalizacao e giroscopio
     boxDados.add(dadoCarro);
     ELMOcupado = false;
   }
+
+
+  Future getDadosGeolocalizacao() async {
+    try {
+      Position geolocation = await geolocationService!.obterGeolocation();
+      
+      Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
+      
+      Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
+      
+      // Salvar os valores nas variáveis de instância
+      latitude = geolocation.latitude;
+      longitude = geolocation.longitude;
+      aceleracaoX = acelerometro.aceleracaoX;
+      aceleracaoY = acelerometro.aceleracaoY;
+      aceleracaoZ = acelerometro.aceleracaoZ;
+      giroscopioX = giroscopio.giroscopioX;
+      giroscopioY = giroscopio.giroscopioY;
+      giroscopioZ = giroscopio.giroscopioZ;
+      
+      print("Dados salvos: Latitude = \$latitude, Longitude = \$longitude");
+      print("Aceleracao: X = \$aceleracaoX, Y = \$aceleracaoY, Z = \$aceleracaoZ");
+      print("Giroscopio: X = \$giroscopioX, Y = \$giroscopioY, Z = \$giroscopioZ");
+    } catch (e) {
+      print("Erro ao coletar dados: \$e");
+    }
+  }
+
 
   Future<String> testaComandoOBD(
       String comando, BluetoothConnection? connection) async {

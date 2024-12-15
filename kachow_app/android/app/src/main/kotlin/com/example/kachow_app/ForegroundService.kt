@@ -28,6 +28,7 @@ class ForegroundService : Service() {
 
     private val handler: Handler by lazy { Handler(Looper.getMainLooper()) } // Lazy initialization
     private lateinit var obdTask: Runnable
+    private lateinit var geoTask: Runnable
     private lateinit var tratarDadosTask: Runnable
     private lateinit var enviarDadosTask: Runnable
 
@@ -96,6 +97,14 @@ class ForegroundService : Service() {
         }
     }
 
+    private fun coletarDadosGeolocalizao() {
+        try {
+            methodChannel.invokeMethod("coletarDadosGeolocalizao", null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun tratarDadosOBD() {
         try {
             methodChannel.invokeMethod("tratarDadosOBD", null)
@@ -119,6 +128,13 @@ class ForegroundService : Service() {
         }
         handler.post(obdTask)
 
+        geoTask = Runnable {
+            coletarDadosGeolocalizao()
+            handler.postDelayed(geoTask, 1000) // Reposta a tarefa após 1 segundo
+        }
+        handler.post(geoTask)
+        
+
         tratarDadosTask = Runnable {
             tratarDadosOBD()
             handler.postDelayed(tratarDadosTask, 5000) // Reposta a tarefa após 5 segundos
@@ -134,6 +150,7 @@ class ForegroundService : Service() {
 
     private fun pararServicos() {
         handler.removeCallbacks(obdTask)
+        handler.removeCallbacks(geoTask)
         handler.removeCallbacks(tratarDadosTask)
         handler.removeCallbacks(enviarDadosTask)
     }
