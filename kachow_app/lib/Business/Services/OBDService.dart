@@ -11,33 +11,41 @@ import 'package:kachow_app/Domain/entities/Giroscopio.dart';
 
 class Obdservice {
   final Queue<Completer<String>> respostaQueue = Queue<Completer<String>>();
-  final Box<DadoCarro> boxDados = Hive.box<DadoCarro>('tbFilaDados');
-  late GeolocationService? geolocationService;
-
+  final Box<DadoCarro> boxDados = Hive.box('tbFilaDados');
   static DateTime? ultimaColetaDados;
   static bool? ELMOcupado;
+  StreamSubscription? _ELMSubscription;
 
   // Variáveis para armazenar dados de geolocalização, acelerômetro e giroscópio
-  double? latitude;
-  double? longitude;
-  double? aceleracaoX;
-  double? aceleracaoY;
-  double? aceleracaoZ;
-  double? giroscopioX;
-  double? giroscopioY;
-  double? giroscopioZ;
-
-  Future iniciarServico(BluetoothConnection? connection) async {
-    await rotinaComandos(connection);
-  }
+  static double? latitude;
+  static double? longitude;
+  static double? aceleracaoX;
+  static double? aceleracaoY;
+  static double? aceleracaoZ;
+  static double? giroscopioX;
+  static double? giroscopioY;
+  static double? giroscopioZ;
 
   Future iniciarEscuta(BluetoothConnection? connection) async {
-    connection!.input!.listen((data) {
+    _ELMSubscription = connection!.input!.listen((data) {
       String resposta = String.fromCharCodes(data);
       Completer<String> completer = respostaQueue.removeFirst();
       completer.complete(resposta);
       ultimaColetaDados = DateTime.now();
     });
+    // connection!.input!.listen((data) {
+    //   String resposta = String.fromCharCodes(data);
+    //   Completer<String> completer = respostaQueue.removeFirst();
+    //   completer.complete(resposta);
+    //   ultimaColetaDados = DateTime.now();
+    // });
+  }
+
+  Future encerrarEscuta(BluetoothConnection? connection) async {
+    await _ELMSubscription?.cancel();
+    _ELMSubscription = null;
+    ELMOcupado = false;
+    ultimaColetaDados = null;
   }
 
   Future<String> enviarComando(
@@ -62,17 +70,13 @@ class Obdservice {
       "01 11\r" //Throttle Position
     ];
 
-    try {
-      //if (connection != null) {
-      //await iniciarEscuta(connection);
-      if (ELMOcupado == false || ELMOcupado == null) {
-        ELMOcupado = true;
-        await EnviaComandos(listaComandos, connection);
-      }
-      //}
-    } catch (e) {
-      print(e);
+    //if (connection != null) {
+    //await iniciarEscuta(connection);
+    if (ELMOcupado == false || ELMOcupado == null) {
+      ELMOcupado = true;
+      await EnviaComandos(listaComandos, connection);
     }
+    //}
   }
 
   Future<void> EnviaComandos(listaComandos, connection) async {
@@ -90,9 +94,6 @@ class Obdservice {
     // Position geolocation = await geolocationService!.obterGeolocation();
     // Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
     // Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
-
-
-    // Utilizar os valores de geolocalização e sensores armazenados
     dadoCarro.latitude = latitude ?? 0;
     dadoCarro.longitude = longitude ?? 0;
     dadoCarro.aceleracaoX = aceleracaoX ?? 0;
@@ -101,39 +102,26 @@ class Obdservice {
     dadoCarro.giroscopioX = giroscopioX ?? 0;
     dadoCarro.giroscopioY = giroscopioY ?? 0;
     dadoCarro.giroscopioZ = giroscopioZ ?? 0;
-
-    //TO DO: fazer serviço nativo pegar geolocalizacao e giroscopio
     boxDados.add(dadoCarro);
     ELMOcupado = false;
+    print("[${dadoCarro.latitude},${dadoCarro.longitude}]");
   }
 
+  // Método para liberar recursos
+  Future<void> dispose() async {
+    // Cancela a assinatura do Stream, se houver
+    await _ELMSubscription?.cancel();
+    _ELMSubscription = null;
 
-  Future getDadosGeolocalizacao() async {
-    try {
-      Position geolocation = await geolocationService!.obterGeolocation();
-      
-      Acelerometro acelerometro = await geolocationService!.obterAcelerometro();
-      
-      Giroscopio giroscopio = await geolocationService!.obterGiroscopio();
-      
-      // Salvar os valores nas variáveis de instância
-      latitude = geolocation.latitude;
-      longitude = geolocation.longitude;
-      aceleracaoX = acelerometro.aceleracaoX;
-      aceleracaoY = acelerometro.aceleracaoY;
-      aceleracaoZ = acelerometro.aceleracaoZ;
-      giroscopioX = giroscopio.giroscopioX;
-      giroscopioY = giroscopio.giroscopioY;
-      giroscopioZ = giroscopio.giroscopioZ;
-      
-      print("Dados salvos: Latitude = \$latitude, Longitude = \$longitude");
-      print("Aceleracao: X = \$aceleracaoX, Y = \$aceleracaoY, Z = \$aceleracaoZ");
-      print("Giroscopio: X = \$giroscopioX, Y = \$giroscopioY, Z = \$giroscopioZ");
-    } catch (e) {
-      print("Erro ao coletar dados: \$e");
+    // Limpa a fila de respostas
+    while (respostaQueue.isNotEmpty) {
+      respostaQueue.removeFirst().completeError(StateError("Disposed"));
     }
-  }
 
+    // Reinicia as variáveis estáticas
+    ultimaColetaDados = null;
+    ELMOcupado = null;
+  }
 
   Future<String> testaComandoOBD(
       String comando, BluetoothConnection? connection) async {
@@ -159,6 +147,7 @@ class Obdservice {
   }
 
   instanciarServices() {
-    geolocationService = GeolocationService();
+    ELMOcupado = false;
+    ultimaColetaDados = null;
   }
 }

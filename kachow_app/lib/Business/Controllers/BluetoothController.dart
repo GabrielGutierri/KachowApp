@@ -18,12 +18,7 @@ class BluetoothController {
     BluetoothConnection? newConnection =
         await bluePlugin.connect(_dispositivoOBD!.address);
     NativeService.bluetoothConnection = newConnection;
-    NativeService.initServices();
-  }
-
-  Future pararComandos() async {
-    //TO DO: fazer esse cara parar os serviços no kotlin
-    await NativeService.stopServices();
+    await NativeService.initServices();
   }
 
   Future<List<Device>> ObterDispositivosPareados() async {

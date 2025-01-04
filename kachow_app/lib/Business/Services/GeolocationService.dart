@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_sensors/flutter_sensors.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:kachow_app/Business/Services/OBDService.dart';
 import 'package:kachow_app/Domain/entities/Acelerometro.dart';
 import 'package:kachow_app/Domain/entities/Giroscopio.dart';
 
@@ -18,11 +19,11 @@ class GeolocationService {
 
   GeolocationService() {
     // Inicializar os sensores
-    _initializeSensors();
+    // _initializeSensors();
   }
 
   // Método para inicializar e escutar os eventos do acelerômetro e giroscópio
-  Future<void> _initializeSensors() async {
+  Future<void> initializeSensors() async {
     bool hasAccel =
         await SensorManager().isSensorAvailable(Sensors.ACCELEROMETER);
     bool hasGyro = await SensorManager().isSensorAvailable(Sensors.GYROSCOPE);
@@ -79,5 +80,23 @@ class GeolocationService {
         giroscopioX: _giroscopioX,
         giroscopioY: _giroscopioY,
         giroscopioZ: _giroscopioZ);
+  }
+
+  Future getDadosGeolocalizacao() async {
+    Position geolocation = await obterGeolocation();
+
+    Acelerometro acelerometro = await obterAcelerometro();
+
+    Giroscopio giroscopio = await obterGiroscopio();
+
+    Obdservice.latitude = geolocation.latitude;
+    Obdservice.longitude = geolocation.longitude;
+    Obdservice.aceleracaoX = acelerometro.aceleracaoX;
+    Obdservice.aceleracaoY = acelerometro.aceleracaoY;
+    Obdservice.aceleracaoZ = acelerometro.aceleracaoZ;
+    Obdservice.giroscopioX = giroscopio.giroscopioX;
+    Obdservice.giroscopioY = giroscopio.giroscopioY;
+    Obdservice.giroscopioZ = giroscopio.giroscopioZ;
+    print("[${geolocation.latitude},${geolocation.longitude}]");
   }
 }

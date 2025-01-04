@@ -31,6 +31,7 @@ class ForegroundService : Service() {
     private lateinit var geoTask: Runnable
     private lateinit var tratarDadosTask: Runnable
     private lateinit var enviarDadosTask: Runnable
+    private lateinit var monitoraConexaoBluetoothTask: Runnable
 
     private val channelName = "foregroundOBD_service"
     private lateinit var methodChannel: MethodChannel
@@ -121,6 +122,16 @@ class ForegroundService : Service() {
         }
     }
 
+    private fun monitoraConexaoBluetooth(){
+        try{
+            methodChannel.invokeMethod("monitoraConexaoBluetooth", null)
+
+        }
+        catch(e: Exception){
+            e.printStackTrace()
+        }
+    }
+
     private fun iniciarServicos() {
         obdTask = Runnable {
             coletarDadosOBD()
@@ -130,22 +141,27 @@ class ForegroundService : Service() {
 
         geoTask = Runnable {
             coletarDadosGeolocalizao()
-            handler.postDelayed(geoTask, 1000) // Reposta a tarefa após 1 segundo
+            handler.postDelayed(geoTask, 500) // Reposta a tarefa após 50ms
         }
         handler.post(geoTask)
-        
 
         tratarDadosTask = Runnable {
             tratarDadosOBD()
             handler.postDelayed(tratarDadosTask, 5000) // Reposta a tarefa após 5 segundos
         }
-        handler.post(tratarDadosTask)
+        handler.postDelayed(tratarDadosTask, 5000)
 
         enviarDadosTask = Runnable {
             enviarDadosFIWARE()
             handler.postDelayed(enviarDadosTask, 15000) // Reposta a tarefa após 15 segundos
         }
-        handler.post(enviarDadosTask)
+        handler.postDelayed(enviarDadosTask, 15000)
+
+        (monitoraConexaoBluetoothTask) = Runnable {
+            monitoraConexaoBluetooth()
+            handler.postDelayed(monitoraConexaoBluetoothTask, 30000)
+        }
+        handler.postDelayed(monitoraConexaoBluetoothTask, 30000)
     }
 
     private fun pararServicos() {
@@ -153,5 +169,6 @@ class ForegroundService : Service() {
         handler.removeCallbacks(geoTask)
         handler.removeCallbacks(tratarDadosTask)
         handler.removeCallbacks(enviarDadosTask)
+        handler.removeCallbacks(monitoraConexaoBluetoothTask)
     }
 }

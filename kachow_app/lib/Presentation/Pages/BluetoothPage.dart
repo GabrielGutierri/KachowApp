@@ -30,7 +30,9 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   Future<void> _stopService() async {
     try {
-      final result = await platform.invokeMethod('stopForegroundService');
+      final result = await platform.invokeMethod('stopExampleService');
+      NativeService.foreGroundParou = true;
+      await NativeService.stopServices(envioFIWARE: true);
       setState(() {
         _serverState = result;
       });
@@ -109,7 +111,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   Future<void> PararRotinaComandos() async {
     try {
-      await NativeService.stopServices();
+      // await NativeService.stopServices();
       await _stopService();
       setState(() {
         comandosIniciados = false;
