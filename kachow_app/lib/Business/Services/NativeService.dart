@@ -143,7 +143,6 @@ class NativeService {
                 60) {
           monitorDisponivel = false;
           foreGroundParou = true;
-          const platform = MethodChannel('example_service');
           await obdservice.encerrarEscuta(bluetoothConnection);
           await stopServices(envioFIWARE: false);
           await Future.delayed(Duration(seconds: 3));

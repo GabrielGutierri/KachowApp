@@ -60,4 +60,9 @@ class BluetoothController {
       return false;
     }
   }
+
+  Future<bool> VerificarBluetoothLigado() async {
+    bool status = await bluePlugin.isEnabled;
+    return status;
+  }
 }

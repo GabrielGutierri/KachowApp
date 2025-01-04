@@ -16,6 +16,15 @@ class RequestFIWAREService {
       Hive.box<DadoRequisicao>('tbFilaRequisicao');
   late String deviceName;
 
+  Future<bool> validarDadosPendentes() async {
+    Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
+    if (boxDados.values.isEmpty == false ||
+        boxRequisicao.values.isEmpty == false) {
+      return true;
+    }
+    return false;
+  }
+
   Future<void> trataDadosOBD() async {
     Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
     var dadosCarro = boxDados.values;
@@ -139,8 +148,8 @@ class RequestFIWAREService {
         recallInternetStatus += 1;
       }
     }
-    await LimpaTabelaOBD();
-    await LimpaTabelaRequisicao();
+    // await LimpaTabelaOBD();
+    // await LimpaTabelaRequisicao();
   }
 
   Future<void> LimpaTabelaOBD() async {

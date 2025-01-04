@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kachow_app/Business/Controllers/IdentificacaoCarroController.dart';
+import 'package:kachow_app/Business/Utils/MetodosUtils.dart';
 import 'package:kachow_app/IoC/DependencyFactory.dart';
 
 class IdentificacaoCarroPage extends StatefulWidget {
@@ -30,10 +31,20 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
       return;
     }
 
+    bool conexaoInternet = await Metodosutils.VerificaConexaoInternet();
+    if (!conexaoInternet) {
+      setState(() {
+        _mensagemErro =
+            'Sem conexão com internet. Não será possível usar o aplicativo!';
+      });
+      return;
+    }
+
     try {
       bool existe =
           await _identificacaoCarroController.validarCarro(nome, placa);
       if (existe) {
+        await sincronizarDados();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -54,6 +65,47 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
           builder: (context) {
             return AlertDialog(title: Text('ERRO!'));
           });
+    }
+  }
+
+  Future<void> sincronizarDados() async {
+    bool dadosPendentes =
+        await _identificacaoCarroController.validarDadosPendentes();
+    if (dadosPendentes) {
+      await Future.delayed(Duration(seconds: 1));
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Evita fechar ao clicar fora
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.black87, // Cor do fundo do diálogo
+            elevation: 8, // Elevação do diálogo
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16), // Espaço entre o spinner e o texto
+                Text(
+                  'Sincronizando dados',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      try {
+        await _identificacaoCarroController.sincronizarDados();
+      } finally {
+        Navigator.of(context).pop();
+      }
     }
   }
 

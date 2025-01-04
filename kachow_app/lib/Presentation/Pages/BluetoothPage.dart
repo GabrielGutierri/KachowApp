@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kachow_app/Business/Controllers/BluetoothController.dart';
 import 'package:bluetooth_classic/models/device.dart';
 import 'package:kachow_app/Business/Services/NativeService.dart';
+import 'package:kachow_app/Business/Utils/MetodosUtils.dart';
 
 class BluetoothPage extends StatefulWidget {
   final BluetoothController _bluetoothController;
@@ -17,6 +20,10 @@ class _BluetoothPageState extends State<BluetoothPage> {
   static const platform = const MethodChannel('foregroundOBD_service');
   String _serverState = 'Did not make the call yet';
 
+  Timer? timer;
+  bool? statusConexaoELM;
+  bool? statusForeground;
+
   Future<void> _startService() async {
     try {
       final result = await platform.invokeMethod('startForegroundService');
@@ -28,11 +35,59 @@ class _BluetoothPageState extends State<BluetoothPage> {
     }
   }
 
-  Future<void> _stopService() async {
+  Future PararServicoFIWARE(BuildContext context, bool envioFIWARE) async {
+    if (envioFIWARE) {
+      await Future.delayed(Duration(seconds: 1));
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Evita fechar ao clicar fora
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.black87, // Cor do fundo do diálogo
+            elevation: 8, // Elevação do diálogo
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16), // Espaço entre o spinner e o texto
+                Text(
+                  'Sincronizando dados',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      try {
+        await NativeService.stopServices(envioFIWARE: true);
+      } finally {
+        Navigator.of(context).pop();
+      }
+    } else {
+      await NativeService.stopServices(envioFIWARE: false);
+      _exibirMensagemErro(context,
+          "Não foi possível sincronizar os dados com o FIWARE... o aplicativo tentará novamente quando você entrar de novo!");
+    }
+  }
+
+  Future<void> _stopService(BuildContext context) async {
     try {
       final result = await platform.invokeMethod('stopExampleService');
       NativeService.foreGroundParou = true;
-      await NativeService.stopServices(envioFIWARE: true);
+      bool conexaoComInternet = await Metodosutils.VerificaConexaoInternet();
+      if (conexaoComInternet) {
+        await PararServicoFIWARE(context, true);
+      } else {
+        await PararServicoFIWARE(context, false);
+      }
       setState(() {
         _serverState = result;
       });
@@ -69,6 +124,24 @@ class _BluetoothPageState extends State<BluetoothPage> {
           comandosIniciados = false;
         });
         Navigator.of(context).pop(); // Fecha o modal após a conexão
+
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Sucesso'),
+              content: Text("Dispositivo conectado com sucesso!"),
+              actions: [
+                TextButton(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
       }
     } catch (e) {
       _exibirMensagemErro(
@@ -98,27 +171,49 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   Future<void> IniciarRotinaComandos() async {
     try {
+      bool bluetoothLigado =
+          await widget._bluetoothController.VerificarBluetoothLigado();
+      if (!bluetoothLigado) {
+        _exibirMensagemErro(context, 'Atenção! Bluetooth não está ligado!');
+        return;
+      }
       await widget._bluetoothController.rotinaComandos();
       await _startService();
       setState(() {
         bluetoothValido = true;
         comandosIniciados = true;
       });
+
+      timer = Timer.periodic(Duration(seconds: 5), (_) {
+        _checkStatus();
+      });
     } catch (e) {
       _exibirMensagemErro(context, 'Erro');
     }
   }
 
-  Future<void> PararRotinaComandos() async {
+  Future<void> PararRotinaComandos(BuildContext context) async {
     try {
       // await NativeService.stopServices();
-      await _stopService();
+      await _stopService(context);
       setState(() {
         comandosIniciados = false;
       });
+      timer?.cancel();
     } catch (ex) {
       _exibirMensagemErro(context, 'Erro');
     }
+  }
+
+  void _checkStatus() async {
+    bool conexaoELM =
+        (NativeService.bluetoothConnection == null) ? false : true;
+    bool foregroundRodando = NativeService.foreGroundParou;
+
+    setState(() {
+      statusConexaoELM = conexaoELM;
+      statusForeground = foregroundRodando;
+    });
   }
 
   Future<void> _testarComandoOBD(BuildContext context) async {
@@ -144,7 +239,6 @@ class _BluetoothPageState extends State<BluetoothPage> {
   }
 
   Future<void> exibirModalDispositivos(BuildContext context) async {
-    // Supondo que você tenha uma função para obter os dispositivos pareados
     List<Device> dispositivosBluetooth =
         await widget._bluetoothController.ObterDispositivosPareados();
 
@@ -222,50 +316,85 @@ class _BluetoothPageState extends State<BluetoothPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Conexão Bluetooth'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            if (!bluetoothValido)
-              ElevatedButton(
-                onPressed: () {
-                  exibirModalDispositivos(context);
-                },
-                child: const Text('Conectar'),
-              )
-            else if (bluetoothValido && !comandosIniciados) ...[
-              ElevatedButton(
-                onPressed: () async {
-                  await IniciarRotinaComandos();
-                },
-                child: const Text('Enviar comandos'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  await TestarComando(context);
-                },
-                child: const Text('Testar um comando'),
-              )
-            ] else if (bluetoothValido && comandosIniciados) ...[
-              ElevatedButton(
-                onPressed: () async {
-                  await PararRotinaComandos();
-                },
-                child: const Text('Parar comandos'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  await TestarComando(context);
-                },
-                child: const Text('Testar um comando'),
-              )
-            ],
-          ],
+        appBar: AppBar(
+          title: const Text('Conexão Bluetooth'),
         ),
-      ),
-    );
+        body: Stack(children: [
+          Center(
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (!bluetoothValido)
+                ElevatedButton(
+                  onPressed: () {
+                    exibirModalDispositivos(context);
+                  },
+                  child: const Text('Conectar'),
+                )
+              else if (bluetoothValido && !comandosIniciados) ...[
+                ElevatedButton(
+                  onPressed: () async {
+                    await IniciarRotinaComandos();
+                  },
+                  child: const Text('Iniciar Corrida'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await TestarComando(context);
+                  },
+                  child: const Text('Testar um comando'),
+                )
+              ] else if (bluetoothValido && comandosIniciados) ...[
+                CircularProgressIndicator(),
+                ElevatedButton(
+                  onPressed: () async {
+                    await PararRotinaComandos(context);
+                  },
+                  child: const Text('Encerrar corrida'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await TestarComando(context);
+                  },
+                  child: const Text('Testar um comando'),
+                )
+              ],
+            ],
+          )),
+          if (bluetoothValido && comandosIniciados) ...[
+            if (statusConexaoELM == false) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.red,
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: Text(
+                    "Dispositivo OBD desconectado",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
+            if (statusForeground == false) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.red,
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: Text(
+                    "Serviço em segundo plano parou",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ]
+          ]
+        ]));
   }
 }
