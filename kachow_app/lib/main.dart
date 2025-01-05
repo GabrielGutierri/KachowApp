@@ -18,7 +18,7 @@ void main() async {
   await Hive.openBox<DadoRequisicao>('tbFilaRequisicao');
   await Hive.openBox<DadoException>('tbException');
 
-  NativeService.initialize();
+  await NativeService.initialize();
   runApp(const MyApp());
   await checkPermissions();
 }

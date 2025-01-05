@@ -43,6 +43,24 @@ class BluetoothController {
     return resposta;
   }
 
+  Future<bool> VerificarConexaoOBD() async {
+    try {
+      BluetoothConnection? newConnection =
+          await bluePlugin.connect(_dispositivoOBD!.address);
+      await _obdservice.iniciarEscuta(newConnection);
+      for (var i = 0; i < 10; i++) {
+        String resposta = await _obdservice
+            .enviarComando("01 0D", newConnection)
+            .timeout(Duration(seconds: 3));
+      }
+      await newConnection!.finish();
+      newConnection.dispose();
+      return true;
+    } catch (ex) {
+      return false;
+    }
+  }
+
   Future<bool> ConectarAoDispositivo(Device dispositivo) async {
     try {
       BluetoothConnection? connectionB =

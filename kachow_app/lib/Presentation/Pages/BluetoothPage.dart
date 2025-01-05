@@ -80,7 +80,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   Future<void> _stopService(BuildContext context) async {
     try {
-      final result = await platform.invokeMethod('stopExampleService');
+      final result = await platform.invokeMethod('stopForegroundService');
       NativeService.foreGroundParou = true;
       bool conexaoComInternet = await Metodosutils.VerificaConexaoInternet();
       if (conexaoComInternet) {
@@ -169,12 +169,53 @@ class _BluetoothPageState extends State<BluetoothPage> {
     );
   }
 
-  Future<void> IniciarRotinaComandos() async {
+  Future<void> IniciarRotinaComandos(BuildContext context) async {
     try {
       bool bluetoothLigado =
           await widget._bluetoothController.VerificarBluetoothLigado();
       if (!bluetoothLigado) {
         _exibirMensagemErro(context, 'Atenção! Bluetooth não está ligado!');
+        return;
+      }
+
+      await Future.delayed(Duration(seconds: 1));
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Evita fechar ao clicar fora
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.black87, // Cor do fundo do diálogo
+            elevation: 8, // Elevação do diálogo
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16), // Espaço entre o spinner e o texto
+                Text(
+                  'Verificando dispositivo OBD',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      bool obdOK = false;
+      try {
+        obdOK = await widget._bluetoothController.VerificarConexaoOBD();
+      } finally {
+        Navigator.of(context).pop();
+      }
+      if (!obdOK) {
+        _exibirMensagemErro(context,
+            "Atenção! OBD não está respondendo, verifique ele ou tente novamente!");
         return;
       }
       await widget._bluetoothController.rotinaComandos();
@@ -188,7 +229,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
         _checkStatus();
       });
     } catch (e) {
-      _exibirMensagemErro(context, 'Erro');
+      _exibirMensagemErro(context, 'Erro desconhecido ao iniciar a corrida');
     }
   }
 
@@ -200,16 +241,35 @@ class _BluetoothPageState extends State<BluetoothPage> {
         comandosIniciados = false;
       });
       timer?.cancel();
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Sucesso'),
+            content: Text("Corrida encerrada com sucesso!"),
+            actions: [
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
     } catch (ex) {
-      _exibirMensagemErro(context, 'Erro');
+      _exibirMensagemErro(context, 'Erro desconhecido ao encerrar a corrida');
     }
   }
 
   void _checkStatus() async {
     bool conexaoELM =
         (NativeService.bluetoothConnection == null) ? false : true;
-    bool foregroundRodando = NativeService.foreGroundParou;
-
+    bool foregroundRodando =
+        (NativeService.foreGroundParou == true) ? false : true;
+    // bool conexaoELM = true;
+    // bool foregroundRodando = true;
     setState(() {
       statusConexaoELM = conexaoELM;
       statusForeground = foregroundRodando;
@@ -334,7 +394,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
               else if (bluetoothValido && !comandosIniciados) ...[
                 ElevatedButton(
                   onPressed: () async {
-                    await IniciarRotinaComandos();
+                    await IniciarRotinaComandos(context);
                   },
                   child: const Text('Iniciar Corrida'),
                 ),
@@ -351,48 +411,60 @@ class _BluetoothPageState extends State<BluetoothPage> {
                     await PararRotinaComandos(context);
                   },
                   child: const Text('Encerrar corrida'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    await TestarComando(context);
-                  },
-                  child: const Text('Testar um comando'),
                 )
               ],
             ],
           )),
-          if (bluetoothValido && comandosIniciados) ...[
-            if (statusConexaoELM == false) ...[
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  color: Colors.red,
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  child: Text(
-                    "Dispositivo OBD desconectado",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                    textAlign: TextAlign.center,
+          if (statusConexaoELM != null && statusForeground != null) ...[
+            if (bluetoothValido && comandosIniciados) ...[
+              if (statusConexaoELM == false) ...[
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Colors.red,
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                    child: Text(
+                      "Dispositivo OBD desconectado",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
-              ),
-            ],
-            if (statusForeground == false) ...[
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  color: Colors.red,
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                  child: Text(
-                    "Serviço em segundo plano parou",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                    textAlign: TextAlign.center,
+              ],
+              if (statusForeground == false) ...[
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Colors.red,
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                    child: Text(
+                      "Serviço em segundo plano parou",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
-              ),
+              ],
+              if (statusConexaoELM == true && statusForeground == true) ...[
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    color: Colors.green,
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                    child: Text(
+                      "OBD e Serviço em segundo plano rodando",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ]
             ]
           ]
         ]));

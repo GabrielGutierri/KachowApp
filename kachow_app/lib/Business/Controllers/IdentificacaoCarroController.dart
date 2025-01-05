@@ -25,6 +25,7 @@ class IdentificacaoCarroController {
   }
 
   Future sincronizarDados() async {
+    await _requestService.setDeviceName();
     await _requestService.RotinaLimpeza();
   }
 }

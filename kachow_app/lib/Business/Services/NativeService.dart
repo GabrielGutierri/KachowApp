@@ -18,7 +18,7 @@ class NativeService {
   static bool foreGroundParou = false;
   static final FlutterBlueClassic bluePlugin = FlutterBlueClassic();
 
-  static void initialize() {
+  static Future initialize() async {
     channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'coletarDadosOBD':
@@ -48,6 +48,7 @@ class NativeService {
   static Future<void> initServices() async {
     obdservice = Obdservice();
     requestFIWAREService = RequestFIWAREService();
+    await requestFIWAREService.setDeviceName();
     geolocationService = GeolocationService();
     await geolocationService.initializeSensors();
     obdservice.instanciarServices();
