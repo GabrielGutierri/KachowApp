@@ -31,13 +31,14 @@ class DadoCarroAdapter extends TypeAdapter<DadoCarro> {
       ..longitude = fields[11] as double
       ..giroscopioX = fields[12] as double
       ..giroscopioY = fields[13] as double
-      ..giroscopioZ = fields[14] as double;
+      ..giroscopioZ = fields[14] as double
+      ..idCorrida = fields[15] as int;
   }
 
   @override
   void write(BinaryWriter writer, DadoCarro obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.dataColetaDados)
       ..writeByte(1)
@@ -67,7 +68,9 @@ class DadoCarroAdapter extends TypeAdapter<DadoCarro> {
       ..writeByte(13)
       ..write(obj.giroscopioY)
       ..writeByte(14)
-      ..write(obj.giroscopioZ);
+      ..write(obj.giroscopioZ)
+      ..writeByte(15)
+      ..write(obj.idCorrida);
   }
 
   @override

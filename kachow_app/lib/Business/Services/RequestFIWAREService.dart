@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive/hive.dart';
+import 'package:http/http.dart';
 import 'package:kachow_app/Business/Services/FiwareService.dart';
 import 'package:kachow_app/Business/Utils/TrataMensagemOBD.dart';
 import 'package:kachow_app/Business/Utils/TrataMensagemSensores.dart';
@@ -14,7 +15,7 @@ import 'package:http/http.dart' as http;
 class RequestFIWAREService {
   final Box<DadoRequisicao> boxRequisicao =
       Hive.box<DadoRequisicao>('tbFilaRequisicao');
-  late String deviceName;
+  static late String deviceName;
 
   Future<bool> validarDadosPendentes() async {
     Box<DadoCarro> boxDados = await Hive.openBox('tbFilaDados');
@@ -91,7 +92,8 @@ class RequestFIWAREService {
         "dataColetaDados": {
           "type": "Text",
           "value": dado.dataColetaDados.toString()
-        }
+        },
+        "idCorrida": {"type": "float", "value": dado.idCorrida}
       };
       DadoRequisicao request = new DadoRequisicao();
       request.status = 1;
@@ -210,5 +212,42 @@ class RequestFIWAREService {
     RegExp regex = RegExp(r"[()=']");
     String result = mensagem.replaceAll(regex, "");
     return result;
+  }
+
+  static Future<int> ultimoIdCorrida() async {
+    String ip = Fiwareservice.ip;
+    var url = Uri.parse(
+        "http://$ip:8666/STH/v1/contextEntities/type/Carro/id/$deviceName/attributes/idCorrida?lastN=1");
+
+    Response response = await http.get(
+      url,
+      headers: {"fiware-service": "smart", "fiware-servicepath": "/"},
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      // Decodifica o JSON
+      final jsonResponse = jsonDecode(response.body);
+
+      // Navega até attributes
+      final attributes = jsonResponse["contextResponses"]?[0]["contextElement"]
+          ?["attributes"] as List?;
+
+      if (attributes != null && attributes.isNotEmpty) {
+        // Navega até values
+        final values = attributes[0]["values"] as List?;
+
+        if (values != null && values.isNotEmpty) {
+          // Obtém attrValue
+          final attrValue = values[0]["attrValue"] as int?;
+
+          if (attrValue != null) {
+            // Converte e incrementa idCorrida
+            return attrValue + 1;
+          }
+        }
+      }
+      return 1; // Valor padrão para idCorrida
+    }
+    return 0;
   }
 }

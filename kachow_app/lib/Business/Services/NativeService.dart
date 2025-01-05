@@ -1,10 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:hive/hive.dart';
+import 'package:http/http.dart';
+import 'package:kachow_app/Business/Services/FiwareService.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
 import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
 import 'package:kachow_app/Business/Services/GeolocationService.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
+import 'package:http/http.dart' as http;
 
 class NativeService {
   static const MethodChannel channel = MethodChannel('foregroundOBD_service');
@@ -17,6 +22,7 @@ class NativeService {
   static bool monitorDisponivel = true;
   static bool foreGroundParou = false;
   static final FlutterBlueClassic bluePlugin = FlutterBlueClassic();
+  static late int idCorrida;
 
   static Future initialize() async {
     channel.setMethodCallHandler((call) async {

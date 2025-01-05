@@ -3,6 +3,7 @@ import 'package:bluetooth_classic/models/device.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:kachow_app/Business/Services/NativeService.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
+import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BluetoothController {
@@ -19,6 +20,7 @@ class BluetoothController {
         await bluePlugin.connect(_dispositivoOBD!.address);
     NativeService.bluetoothConnection = newConnection;
     await NativeService.initServices();
+    Obdservice.idCorrida = await RequestFIWAREService.ultimoIdCorrida();
   }
 
   Future<List<Device>> ObterDispositivosPareados() async {

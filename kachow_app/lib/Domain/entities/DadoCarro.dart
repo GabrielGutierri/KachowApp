@@ -34,4 +34,6 @@ class DadoCarro extends HiveObject {
   late double giroscopioY;
   @HiveField(14)
   late double giroscopioZ;
+  @HiveField(15)
+  late int idCorrida;
 }

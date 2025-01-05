@@ -57,7 +57,8 @@ class Fiwareservice {
             {"object_id": "gr", "name": "giroscopioRow", "type": "float"},
             {"object_id": "gp", "name": "giroscopioPitch", "type": "float"},
             {"object_id": "gy", "name": "giroscopioYaw", "type": "float"},
-            {"object_id": "d", "name": "dataColetaDados", "type": "Text"}
+            {"object_id": "d", "name": "dataColetaDados", "type": "Text"},
+            {"object_id": "ic", "name": "idCorrida", "type": "float"}
           ]
         }
       ]
@@ -94,7 +95,8 @@ class Fiwareservice {
             "giroscopioRow",
             "giroscopioPitch",
             "giroscopioYaw",
-            "dataColetaDados"
+            "dataColetaDados",
+            "idCorrida"
           ]
         }
       },
@@ -115,6 +117,7 @@ class Fiwareservice {
           "giroscopioPitch",
           "giroscopioYaw",
           "dataColetaDados",
+          "idCorrida"
         ],
         "attrsFormat":
             "legacy" // Formato dos atributos a ser notificado (legado)
@@ -152,7 +155,8 @@ class Fiwareservice {
       'giroscopioRow': {'type': 'float', 'value': 0},
       'giroscopioPitch': {'type': 'float', 'value': 0},
       'giroscopioYaw': {'type': 'float', 'value': 0},
-      "dataColetaDados": {"type": "Text", "value": "0"}
+      "dataColetaDados": {"type": "Text", "value": "0"},
+      "idCorrida": {"type": "float", "value": "0"}
     };
 
     await http.post(urlOrion, body: json.encode(body), headers: {

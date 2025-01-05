@@ -25,6 +25,7 @@ class Obdservice {
   static double? giroscopioX;
   static double? giroscopioY;
   static double? giroscopioZ;
+  static late int idCorrida;
 
   Future iniciarEscuta(BluetoothConnection? connection) async {
     _ELMSubscription = connection!.input!.listen((data) {
@@ -102,6 +103,7 @@ class Obdservice {
     dadoCarro.giroscopioX = giroscopioX ?? 0;
     dadoCarro.giroscopioY = giroscopioY ?? 0;
     dadoCarro.giroscopioZ = giroscopioZ ?? 0;
+    dadoCarro.idCorrida = idCorrida;
     boxDados.add(dadoCarro);
     ELMOcupado = false;
     print("[${dadoCarro.latitude},${dadoCarro.longitude}]");
