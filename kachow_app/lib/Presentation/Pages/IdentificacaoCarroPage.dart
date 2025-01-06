@@ -51,13 +51,11 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
               builder: (context) => DependencyFactory.createBluetoothPage()),
         );
       } else {
-        _identificacaoCarroController.salvarCarro(nome, placa);
-        setState(() {});
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => DependencyFactory.createBluetoothPage()),
-        );
+        //_identificacaoCarroController.salvarCarro(nome, placa);
+        setState(() {
+          _mensagemErro = 'O carro informado não existe!';
+        });
+        return;
       }
     } catch (ex) {
       showDialog(
