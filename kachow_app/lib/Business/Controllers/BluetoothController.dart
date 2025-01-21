@@ -50,10 +50,19 @@ class BluetoothController {
       BluetoothConnection? newConnection =
           await bluePlugin.connect(_dispositivoOBD!.address);
       await _obdservice.iniciarEscuta(newConnection);
+
       for (var i = 0; i < 10; i++) {
-        String resposta = await _obdservice
-            .enviarComando("01 0D", newConnection)
-            .timeout(Duration(seconds: 3));
+        try {
+          String resposta = await _obdservice
+              .enviarComando("01 0D", newConnection)
+              .timeout(Duration(seconds: 3));
+        } catch (ex) {
+          if (i == 9) {
+            await newConnection!.finish();
+            newConnection.dispose();
+            return false;
+          }
+        }
       }
       await newConnection!.finish();
       newConnection.dispose();

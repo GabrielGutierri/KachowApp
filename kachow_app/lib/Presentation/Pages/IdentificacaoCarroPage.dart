@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kachow_app/Business/Controllers/IdentificacaoCarroController.dart';
 import 'package:kachow_app/Business/Utils/MetodosUtils.dart';
+import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:kachow_app/IoC/DependencyFactory.dart';
 
 class IdentificacaoCarroPage extends StatefulWidget {
@@ -18,6 +19,20 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
   final IdentificacaoCarroController _identificacaoCarroController;
 
   _IdentificacaoCarroPageState(this._identificacaoCarroController);
+
+  @override
+  void initState() {
+    super.initState();
+    _obterIdentificacaoVeiculoSalva();
+  }
+
+  Future<void> _obterIdentificacaoVeiculoSalva() async {
+    IdentificacaoVeiculo veiculoSalvo =
+        await _identificacaoCarroController.recuperaVeiculoSalvo();
+
+    _nomeController.text = veiculoSalvo.nome;
+    _placaController.text = veiculoSalvo.placa;
+  }
 
   String? _mensagemErro;
   void _loginOuCadastrar() async {
@@ -45,6 +60,9 @@ class _IdentificacaoCarroPageState extends State<IdentificacaoCarroPage> {
           await _identificacaoCarroController.validarCarro(nome, placa);
       if (existe) {
         await sincronizarDados();
+        IdentificacaoVeiculo veiculo =
+            new IdentificacaoVeiculo(nome: nome, placa: placa);
+        await _identificacaoCarroController.salvarVeiculo(veiculo);
         Navigator.push(
           context,
           MaterialPageRoute(
