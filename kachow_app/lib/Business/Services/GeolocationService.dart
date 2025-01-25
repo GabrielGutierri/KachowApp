@@ -60,7 +60,8 @@ class GeolocationService {
 
   Future<Position> obterGeolocation() async {
     Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.best,
+        forceAndroidLocationManager: true);
     return position;
   }
 
@@ -97,6 +98,5 @@ class GeolocationService {
     Obdservice.giroscopioX = giroscopio.giroscopioX;
     Obdservice.giroscopioY = giroscopio.giroscopioY;
     Obdservice.giroscopioZ = giroscopio.giroscopioZ;
-    print("[${geolocation.latitude},${geolocation.longitude}]");
   }
 }
