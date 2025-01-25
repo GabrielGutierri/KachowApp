@@ -5,6 +5,7 @@ import 'package:kachow_app/Business/Services/NativeService.dart';
 import 'package:kachow_app/Domain/entities/DadoCarro.dart';
 import 'package:kachow_app/Domain/entities/DadoException.dart';
 import 'package:kachow_app/Domain/entities/DadoRequisicao.dart';
+import 'package:kachow_app/Domain/entities/IdentificacaoVeiculo.dart';
 import 'package:kachow_app/IoC/DependencyFactory.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -13,10 +14,12 @@ void main() async {
   Hive.registerAdapter(DadoCarroAdapter());
   Hive.registerAdapter(DadoRequisicaoAdapter());
   Hive.registerAdapter(DadoExceptionAdapter());
+  Hive.registerAdapter(IdentificacaoVeiculoAdapter());
 
   await Hive.openBox<DadoCarro>('tbFilaDados');
   await Hive.openBox<DadoRequisicao>('tbFilaRequisicao');
   await Hive.openBox<DadoException>('tbException');
+  await Hive.openBox<IdentificacaoVeiculo>('tbIdentificacaoVeiculo');
 
   await NativeService.initialize();
   runApp(const MyApp());

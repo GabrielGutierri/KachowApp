@@ -141,7 +141,7 @@ class ForegroundService : Service() {
 
         geoTask = Runnable {
             coletarDadosGeolocalizao()
-            handler.postDelayed(geoTask, 500) // Reposta a tarefa após 50ms
+            handler.postDelayed(geoTask, 50) // Reposta a tarefa após 50ms
         }
         handler.post(geoTask)
 
