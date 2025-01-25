@@ -98,6 +98,7 @@ class _BluetoothPageState extends State<BluetoothPage> {
 
   bool bluetoothValido = false;
   bool comandosIniciados = false;
+  bool bluetoothVerificado = false;
 
   final TextEditingController _comandoOBDController = TextEditingController();
 
@@ -119,6 +120,8 @@ class _BluetoothPageState extends State<BluetoothPage> {
             context, 'Erro ao conectar ao dispositivo Bluetooth.');
       } else {
         // Quando a conexão for bem-sucedida, atualizar o estado da página
+        await widget._bluetoothController.salvarUltimoDispositivo(dispositivo.address);
+
         setState(() {
           bluetoothValido = true;
           comandosIniciados = false;
@@ -148,6 +151,50 @@ class _BluetoothPageState extends State<BluetoothPage> {
           context, 'Erro ao conectar ao dispositivo Bluetooth.');
     }
   }
+
+
+
+  Future<void> _rotinaConexaoBluetoothDispositivoEncontrado(
+      Device dispositivo, BuildContext context) async {
+    try {
+      bool conectado =
+          await widget._bluetoothController.ConectarAoDispositivo(dispositivo);
+      //bool conectado = true;
+      if (!conectado) {
+        _exibirMensagemErro(
+            context, 'Erro ao conectar ao dispositivo Bluetooth.');
+      } else {
+        // Quando a conexão for bem-sucedida, atualizar o estado da página
+        await widget._bluetoothController.salvarUltimoDispositivo(dispositivo.address);
+
+        setState(() {
+          bluetoothValido = true;
+          comandosIniciados = false;
+        });
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Sucesso'),
+              content: Text("Dispositivo conectado com sucesso!"),
+              actions: [
+                TextButton(
+                  child: Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      _exibirMensagemErro(
+          context, 'Erro ao conectar ao dispositivo Bluetooth.');
+    }
+  }
+
 
   void _exibirMensagemErro(BuildContext context, String mensagem) {
     showDialog(
@@ -373,15 +420,52 @@ class _BluetoothPageState extends State<BluetoothPage> {
     );
   }
 
+  Future<void> _verificarUltimoDispositivo() async {
+    List<Device> dispositivos = await widget._bluetoothController.ObterDispositivosPareados();
+    String? ultimoDispositivo = await widget._bluetoothController.obterUltimoDispositivo();
+    bluetoothVerificado = true;
+
+    if (ultimoDispositivo != null) {
+      Device? dispositivoEncontrado = dispositivos.firstWhere(
+        (device) => device.address == ultimoDispositivo,
+        orElse: () => null as Device, // Cast para evitar erro
+      );
+      if (dispositivoEncontrado != null) {
+        await _rotinaConexaoBluetoothDispositivoEncontrado(dispositivoEncontrado, context);
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _inicializarBluetooth();
+  }
+
+  void _inicializarBluetooth() async {
+    if (!bluetoothVerificado) {
+      await _verificarUltimoDispositivo();
+      setState(() {}); // Atualiza a UI após a verificação
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Conexão Bluetooth'),
-        ),
-        body: Stack(children: [
-          Center(
-              child: Column(
+      appBar: AppBar(
+        title: const Text('Conexão Bluetooth'),
+      ),
+      body: bluetoothVerificado
+          ? _buildMainContent()
+          : Center(child: CircularProgressIndicator()), // Mostra um indicador de carregamento enquanto verifica
+    );
+  }
+
+  Widget _buildMainContent() {
+    return Stack(
+      children: [
+        Center(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               if (!bluetoothValido)
@@ -414,59 +498,61 @@ class _BluetoothPageState extends State<BluetoothPage> {
                 )
               ],
             ],
-          )),
-          if (statusConexaoELM != null && statusForeground != null) ...[
-            if (bluetoothValido && comandosIniciados) ...[
-              if (statusConexaoELM == false) ...[
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    color: Colors.red,
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                    child: Text(
-                      "Dispositivo OBD desconectado",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
+          ),
+        ),
+        if (statusConexaoELM != null && statusForeground != null) ...[
+          if (bluetoothValido && comandosIniciados) ...[
+            if (statusConexaoELM == false) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.red,
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: Text(
+                    "Dispositivo OBD desconectado",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ],
-              if (statusForeground == false) ...[
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    color: Colors.red,
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                    child: Text(
-                      "Serviço em segundo plano parou",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
+              ),
+            ],
+            if (statusForeground == false) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.red,
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: Text(
+                    "Serviço em segundo plano parou",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ],
-              if (statusConexaoELM == true && statusForeground == true) ...[
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    color: Colors.green,
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                    child: Text(
-                      "OBD e Serviço em segundo plano rodando",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
+              ),
+            ],
+            if (statusConexaoELM == true && statusForeground == true) ...[
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.green,
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                  child: Text(
+                    "OBD e Serviço em segundo plano rodando",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ]
+              ),
             ]
           ]
-        ]));
+        ]
+      ],
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'package:bluetooth_classic/models/device.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:kachow_app/Business/Services/NativeService.dart';
 import 'package:kachow_app/Business/Services/OBDService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kachow_app/Business/Services/RequestFIWAREService.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -14,6 +15,17 @@ class BluetoothController {
   final _device = BluetoothClassic();
   final FlutterBlueClassic bluePlugin = FlutterBlueClassic();
   Device? _dispositivoOBD = null;
+
+  Future<void> salvarUltimoDispositivo(String address) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ultimo_dispositivo', address);
+  }
+
+  Future<String?> obterUltimoDispositivo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('ultimo_dispositivo');
+  }
+
 
   Future rotinaComandos() async {
     BluetoothConnection? newConnection =
@@ -34,6 +46,8 @@ class BluetoothController {
     }
     return devices;
   }
+
+  
 
   Future<String> testarComandoOBD(String comando) async {
     BluetoothConnection? newConnection =
@@ -80,6 +94,7 @@ class BluetoothController {
       return false;
     }
   }
+
 
   Future<bool> VerificarBluetoothLigado() async {
     bool status = await bluePlugin.isEnabled;
